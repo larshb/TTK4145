@@ -10,4 +10,4 @@
 * Samtidighet kan for eksempel brukes til å drive to uavhengige fysiske enheter på samme tid.
 * Samtidighet vanskeligere?
 * Prosesser og tråder er eksekvering av et programmer, der tråder er prosesser som deler minne. Grønne tråder er tråder som er planlagt av et runtime-bibliotek eller en virtuell maskin i stedet for direkte ved det underliggende operativsystemet. Korutiner er en kontrollstruktur der flytkontroll foregår mellom to forskjellige rutiner uten å returnere.
-* ...
+
