@@ -13,4 +13,6 @@
 * ...
 
 ## 4: Endelig kode
+* [C](ex01.c)
 * [Python](ex01.py)
+* [Go](ex01.go)
