@@ -1,2 +1,2 @@
 # TTK4145
-Sanntidsprogrammering
+Øvinger og prosjekt i Sanntidsprogrammering 2016.
