@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	. "fmt"
 	"runtime"
 	"time"
 )
@@ -26,5 +26,5 @@ func main() {
 	go thread2()
 
 	time.Sleep(100 * time.Millisecond)
-	fmt.Println(i)
+	Println(i)
 }
