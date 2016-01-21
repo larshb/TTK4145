@@ -1,13 +1,8 @@
-
-// gcc 4.7.2 +
-// gcc -std=gnu99 -Wall -g -o helloworld_c helloworld_c.c -lpthread
-
 #include <pthread.h>
 #include <stdio.h>
 
-
 int i = 0;
-// Note the return type: void*
+
 void* Thread1(){
     int r=0;
     for (r = 0; r<=1000000; r= r+1){
@@ -31,5 +26,4 @@ int main(){
     pthread_join(thread2, NULL);
     printf("%d\n",i);
     return 0;
-    
 }
