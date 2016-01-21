@@ -21,7 +21,7 @@ func thread2() {
 }
 
 func main() {
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(runtime.numCPU())
 	go thread1()
 	go thread2()
 
