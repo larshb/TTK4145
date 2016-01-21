@@ -1,4 +1,4 @@
-# Øving 1
+# Øving 1: Hello world
 
 ## 3: Grunner til samtidighet og parallellitet
 > **Parallellitet:** Flere tråder kjører samtidig.  
