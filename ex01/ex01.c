@@ -4,17 +4,15 @@
 int i = 0;
 
 void* Thread1(){
-    int r=0;
-    for (r = 0; r<=1000000; r= r+1){
+    int j;
+    for (j = 0; j < 1000000; j++)
     	i++;
-    }
 }
 
 void* Thread2(){
-    int t=0;
-    for (t = 0; t<=1000000; t=t+1){
+    int j;
+    for (j = 0; j < 1000000; j++)
     	i--;
-    }
 }
 
 int main(){
