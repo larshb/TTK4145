@@ -1,31 +1,57 @@
 package main
 
 import (
-	. "fmt"
-	. "net"
+	"fmt"
+	"net"
+	"strconv"
+	"time"
 )
 
-func checkError(err error) {
+func CheckError(err error) {
 	if err != nil {
-		Println("Error: ", err)
+		fmt.Println("Error: ", err)
 	}
 }
 
-func recieve() {
-	ServerAddr, err := ResolveUDPAddr("udp", ":30000")
-	checkError(err)
-	ServerConn, err := ListenUDP("udp", ServerAddr)
-	checkError(err)
+func udpRecieve() {
+	ServerAddr, err := net.ResolveUDPAddr("udp", ":30000")
+	CheckError(err)
+	ServerConn, err := net.ListenUDP("udp", ServerAddr)
+	CheckError(err)
 	defer ServerConn.Close()
 	buf := make([]byte, 1024)
 	for {
 		n, addr, err := ServerConn.ReadFromUDP(buf)
-		checkError(err)
-		Println("Received ", string(buf[0:n]), " from ", addr)
+		CheckError(err)
+		fmt.Println("Received ", string(buf[0:n]), " from ", addr)
+	}
+}
+
+func udpSend() {
+	ServerAddr, err := net.ResolveUDPAddr("udp", "255.255.255.255:20017")
+	CheckError(err)
+
+	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	CheckError(err)
+
+	Conn, err := net.DialUDP("udp", LocalAddr, ServerAddr)
+	CheckError(err)
+
+	defer Conn.Close()
+	i := 0
+	for {
+		msg := strconv.Itoa(i)
+		i++
+		buf := []byte(msg)
+		_, err := Conn.Write(buf)
+		if err != nil {
+			fmt.Println(msg, err)
+		}
+		time.Sleep(time.Second * 1)
 	}
 }
 
 func main() {
-	//listen30000()
-	send()
+	//udpRecieve()
+	udpSend()
 }
