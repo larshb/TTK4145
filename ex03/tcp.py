@@ -1,4 +1,3 @@
-#!/usr/bin/env python 
 import socket
   
 TCP_IP = '129.241.187.23'
