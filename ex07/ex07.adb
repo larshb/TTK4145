@@ -66,7 +66,7 @@ procedure ex07 is
             delay Duration(Random(Gen) * 4.0);
             return x + 10;
         end if;
-        ------------------------------------------
+        -------------------------------------------
         
     end Unreliable_Slow_Add;
     
@@ -89,7 +89,7 @@ procedure ex07 is
             -- PART 2: Do the transaction work here             
             ---------------------------------------
             begin
-                num := Unreliable_Slow_Add(Prev);
+                Num := Unreliable_Slow_Add(Num);
                 Manager.Finished;
             exception
                 when Count_Failed =>
@@ -99,7 +99,7 @@ procedure ex07 is
                         Manager.Finished;
                     end;
             end;
-            ------------------------------------------
+            ---------------------------------------
             
             if Manager.Commit = True then
                 Put_Line ("  Worker" & Integer'Image(Initial) & " comitting" & Integer'Image(Num));
@@ -111,7 +111,7 @@ procedure ex07 is
                 -- PART 2: Roll back to previous value here
                 -------------------------------------------
                 Num := Prev;
-                ------------------------------------------
+                -------------------------------------------
                 
             end if;
 
