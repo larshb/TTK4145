@@ -32,12 +32,19 @@ int buttonPressed(){
 }
 
 void printState(){
-	for(int i = 0; i < 3; i++){
-		for (int j = 0; j < 4; j++) {
-			printf("%d\t",elev_get_button_signal(i,j));
+	printf("[F]loor [U]p [D]own [C]ommand\n");
+	printf("+-+---+\n|F|UDC|\n+-+---+\n");
+	for (int floor = 3; floor != -1; floor--) {
+		printf("|%d|", floor + 1);
+		for (int j = 0; j < 3; j++) {
+			if (elev_get_button_signal(j, floor))
+				printf("#");
+			else
+				printf(" ");
 		}
-		printf("\n");
+		printf("|\n");
 	}
+	printf("+-+---+\n");
 }
 
 int main() {
