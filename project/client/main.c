@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+
 #include "elev.h"
 
 void setFloor(int lvl){
@@ -30,6 +31,15 @@ int buttonPressed(){
 	return -1;
 }
 
+void printState(){
+	for(int i = 0; i < 3; i++){
+		for (int j = 0; j < 4; j++) {
+			printf("%d\t",elev_get_button_signal(i,j));
+		}
+		printf("\n");
+	}
+}
+
 int main() {
 	elev_init();
 	int prevFloor = -1;
@@ -37,7 +47,9 @@ int main() {
 	while(1){
 		initialFloor();
 		currFloor = buttonPressed();
-		if (currFloor != -1 && currFloor != prevFloor)
+		if (currFloor != -1 && currFloor != prevFloor){
+			printState();
 			setFloor(currFloor);
+		}
 	}
 }
