@@ -48,7 +48,7 @@ void printState(){
 }
 
 int main() {
-	elev_init();
+	elev_init(ET_Simulation);
 	int prevFloor = -1;
 	int currFloor = -1;
 	while(1){
