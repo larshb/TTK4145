@@ -2,10 +2,10 @@
 CC = gcc
 
 # Compiler flags go here.
-CFLAGS = -std=gnu11 -g -Wall -Wextra
+CFLAGS = -std=gnu11 -g -Wall -Wextra -pthread
 
 # Linker flags go here.
-LDFLAGS = -lcomedi -lm -pthread
+LDFLAGS = -lcomedi -lm
 
 # list of sources
 ELEVSRC = elev.c io.c main.c
