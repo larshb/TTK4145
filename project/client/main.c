@@ -184,15 +184,18 @@ void *systemState(){
         for (int flr = 0; flr < N_FLOORS; flr++){
             if( elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 elevator_calls[flr][BUTTON_CALL_UP] = 1;
-                lamps.button[flr][BUTTON_CALL_UP] = 1;
             }
             if( elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
                 elevator_calls[flr][BUTTON_CALL_DOWN] = 1;
-                lamps.button[flr][BUTTON_CALL_DOWN] = 1;
             }
             if( elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
                 elevator_calls[flr][BUTTON_COMMAND] = 1;
-                lamps.button[flr][BUTTON_COMMAND] = 1;
+            }
+        }
+        for(int flr = 0; flr < N_FLOORS; flr++){
+            for(int btn = 0; btn < N_BUTTONS; btn++){
+                lamps.button[flr][btn] = elevator_calls[flr][btn];
+
             }
         }
         setLamps(lamps);
@@ -223,15 +226,15 @@ void *elevatorState(){
 }
 
 void threadTest(){
-    //pthread_t SystemMonitor; // thread identifier
+    pthread_t SystemMonitor; // thread identifier
     //pthread_t ElevatorMonitor; // thread identifier
 
-    //pthread_create(&SystemMonitor,NULL,systemState,"Processing..."); // Create worker thread for systemState, format = (&thread identifier, attribute argument(This is typically NULL), thread function, argument)
+    pthread_create(&SystemMonitor,NULL,systemState,"Processing..."); // Create worker thread for systemState, format = (&thread identifier, attribute argument(This is typically NULL), thread function, argument)
     //pthread_create(&ElevatorMonitor,NULL,elevatorState,"Processing..."); // Create worker thread for elevatorState
 
     findFloor();
     while(1){
-        /*for (int flr = 0; flr < N_FLOORS; flr++){
+        for (int flr = 0; flr < N_FLOORS; flr++){
             for(int btn = 0; btn < N_BUTTONS; btn++){
                 if(elevator_calls[flr][btn]){
                     gotoFloor(flr);
@@ -244,9 +247,9 @@ void threadTest(){
         if (elev_get_stop_signal()){
             elev_set_motor_direction(DIRN_STOP);
             break;
-        }*/
+        }
     }
-    //pthread_join(SystemMonitor,NULL);
+    pthread_join(SystemMonitor,NULL);
     //pthread_join(ElevatorMonitor,NULL);
 
 }
@@ -312,8 +315,8 @@ Should stop:
 int main() {
     elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
     //systemState();
-    //threadTest();
-    control();
+    threadTest();
+    //control();
     //goDown();
     //goDown();
     //goDown();
