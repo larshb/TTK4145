@@ -44,9 +44,8 @@ typedef struct {
 static Elevator elevator;
 static int elevator_calls[N_FLOORS][N_BUTTONS];
 
-//Initialized mutex locks
-//pthread_mutex_t lock1;
-//pthread_mutex_t lock2;
+pthread_mutex_t lock1;
+pthread_mutex_t lock2;
 
 void setLamps(ES_Panel_Lamps lamps) {
     elev_set_floor_indicator(lamps.current_floor);
@@ -85,12 +84,9 @@ void findFloor() {
 }
 
 int _callPressed() {
-	for (int flr = 0; flr < N_FLOORS; flr++){
-        for(int btn = 0; N_BUTTONS < 3; btn++){
-            if (elevator_calls[flr][btn] == 1){
-                return flr;
-            }
-        }
+	for (int i = 0; i < 4; i++){
+		if (elev_get_button_signal(2, i))
+			return i;
 	}
 	return -1;
 }
@@ -98,10 +94,10 @@ int _callPressed() {
 void printState() {
 	printf("[F]loor [U]p [D]own [C]ommand\n");
 	printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
-	for (int flr = 3; flr != -1; flr--) {
-		printf("| %d |", flr + 1);
-		for (int btn = 0; btn < 3; btn++) {
-			if (elevator_calls[flr][btn])
+	for (int floor = 3; floor != -1; floor--) {
+		printf("| %d |", floor + 1);
+		for (int j = 0; j < 3; j++) {
+			if (elev_get_button_signal(j, floor))
 				printf(" #");
 			else
 				printf("  ");
@@ -170,7 +166,7 @@ void goUp(){
 
 }
 
-void *_monitor(){
+void *systemState(){
     ES_Panel_Lamps lamps;
     lamps.current_floor = 0;
     lamps.stop = OFF;
@@ -183,21 +179,19 @@ void *_monitor(){
             lamps.button[flr][btn] = OFF;
         }
     }
-    while(!elev_get_stop_signal()) {
+    while(1) {
         for (int flr = 0; flr < N_FLOORS; flr++){
             if( elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 elevator_calls[flr][BUTTON_CALL_UP] = 1;
+                lamps.button[flr][BUTTON_CALL_UP] = 1;
             }
             if( elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
                 elevator_calls[flr][BUTTON_CALL_DOWN] = 1;
+                lamps.button[flr][BUTTON_CALL_DOWN] = 1;
             }
             if( elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
                 elevator_calls[flr][BUTTON_COMMAND] = 1;
-            }
-        }
-        for(int flr = 0; flr < N_FLOORS; flr++){
-            for(int btn = 0; btn < N_BUTTONS; btn++){
-                lamps.button[flr][btn] = elevator_calls[flr][btn];
+                lamps.button[flr][BUTTON_COMMAND] = 1;
             }
         }
         setLamps(lamps);
@@ -227,7 +221,6 @@ void *elevatorState(){
 
 }
 
-<<<<<<< HEAD
 /*void threadTest(){
     pthread_t SystemMonitor; // thread identifier
     //pthread_t ElevatorMonitor; // thread identifier
@@ -240,26 +233,12 @@ void *elevatorState(){
         for (int flr = 0; flr < N_FLOORS; flr++){
             for(int btn = 0; btn < N_BUTTONS; btn++){
                 if(elevator_calls[flr][btn] == 1){
-=======
-void threadTest(){
-    pthread_t SystemMonitor; // thread identifier
-    //pthread_t ElevatorMonitor; // thread identifier
-
-    pthread_create(&SystemMonitor,NULL,_monitor,NULL); // Create worker thread for _monitor, format = (&thread identifier, attribute argument(This is typically NULL), thread function, argument)
-    //pthread_create(&ElevatorMonitor,NULL,elevatorState,"Processing..."); // Create worker thread for elevatorState
-
-    findFloor();
-    while(!elev_get_stop_signal()){
-        for (int flr = 0; flr < N_FLOORS; flr++){
-            for(int btn = 0; btn < N_BUTTONS; btn++){
-                if(elevator_calls[flr][btn]){
-                    printState();
->>>>>>> 701349f0c8f7e4dc352ffcc7a1d2330a7355c09f
                     gotoFloor(flr);
+                    elevator_calls[flr][0] = 0;
+                    elevator_calls[flr][1] = 0;
+                    elevator_calls[flr][2] = 0;
                 }
-                elevator_calls[flr][btn] = OFF;
             }
-<<<<<<< HEAD
         gotoFloor(0);
         gotoFloor(3);
         
@@ -269,18 +248,10 @@ void threadTest(){
         }
     }
     pthread_join(SystemMonitor,NULL);
-=======
-        }
-    }
-    elev_set_motor_direction(DIRN_STOP);
-    pthread_exit(NULL);
-    //pthread_join(SystemMonitor,NULL);
->>>>>>> 701349f0c8f7e4dc352ffcc7a1d2330a7355c09f
     //pthread_join(ElevatorMonitor,NULL);
 
     }
 }*/
-
 
 void openDoor(){
     findFloor();
@@ -316,7 +287,6 @@ int checkBelow(int fl){
     return 0;
 }
 
-<<<<<<< HEAD
 void elevatorControl(){
     findFloor();
     //Initialize monitor
@@ -486,8 +456,6 @@ void elevatorControl(){
     //Kill monitor
     pthread_join(SystemMonitor,NULL);
 }
-=======
->>>>>>> 701349f0c8f7e4dc352ffcc7a1d2330a7355c09f
 
 /*
 Choose direction:
@@ -504,7 +472,6 @@ Should stop:
 */
 
 
-<<<<<<< HEAD
 int main(){
     elev_init(ET_Simulation); // ET_Comedi or ET_Simulation
     //systemState();
@@ -513,38 +480,4 @@ int main(){
     //goDown();
     //goDown();
     //goDown();
-=======
-void initialize(){ //putte alt som må skje i "initialize" fasen her.
-    
-    findFloor();
-}
-
-
-
-void elevatorControl(){
-    //Enable system monitor
-    pthread_t SystemMonitor; // thread identifier
-    pthread_create(&SystemMonitor,NULL,_monitor,"Processing...");
-
-
-    while(1){
-
-        if(_callPressed()){
-            printState();
-        }
-    }
-
-    //Disable system monitor
-    pthread_join(SystemMonitor,NULL);
-
-}
-
-
-
-int main() {
-    elev_init(ET_Comedi);
-    threadTest();
-    //_monitor();
-    return 0;
->>>>>>> 701349f0c8f7e4dc352ffcc7a1d2330a7355c09f
 }
