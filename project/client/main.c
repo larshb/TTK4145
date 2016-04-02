@@ -8,6 +8,8 @@
 
 #include "elev.h"
 
+#include <string.h>
+
 
 
 
@@ -28,8 +30,8 @@ typedef enum {
     IDLE,
     //DOORS_OPEN,
     MOVING_UP,
-    MOVING_DOWN,
-    STOPPED
+    MOVING_DOWN
+    //STOPPED
 } Elevator_State;
 
 typedef enum { false, true } bool;
@@ -42,7 +44,12 @@ typedef struct {
 
 
 static Elevator elevator;
+static ES_Panel_Lamps lamps;
+static bool stop_Button = false;
 static int elevator_calls[N_FLOORS][N_BUTTONS];
+static int prev_elevator_calls[N_FLOORS][N_BUTTONS];
+
+const int LOG_SIZE = 100;
 
 pthread_mutex_t lock1;
 pthread_mutex_t lock2;
@@ -94,10 +101,10 @@ int _callPressed() {
 void printState() {
 	printf("[F]loor [U]p [D]own [C]ommand\n");
 	printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
-	for (int floor = 3; floor != -1; floor--) {
-		printf("| %d |", floor + 1);
-		for (int j = 0; j < 3; j++) {
-			if (elev_get_button_signal(j, floor))
+	for (int flr = 3; flr != -1; flr--) {
+		printf("| %d |", flr + 1);
+		for (int btn = 0; btn < 3; btn++) {
+			if (elevator_calls[flr][btn] == 1)
 				printf(" #");
 			else
 				printf("  ");
@@ -105,6 +112,8 @@ void printState() {
 		printf(" |\n");
 	}
 	printf("+---+-------+\n");
+    printf("Elevator floor: %d\n", elevator.floor);
+    printf("Elevator state: %d\n", elevator.state);
 }
 
 /*void _moveTest() {
@@ -167,10 +176,6 @@ void goUp(){
 }
 
 void *systemState(){
-    ES_Panel_Lamps lamps;
-    lamps.current_floor = 0;
-    lamps.stop = OFF;
-    lamps.door_open = OFF; 
     for (int flr = 0; flr < N_FLOORS; flr++) {
         for(int btn = 0; btn < N_BUTTONS; btn ++){
             elevator_calls[flr][btn] = 0;
@@ -179,25 +184,82 @@ void *systemState(){
             lamps.button[flr][btn] = OFF;
         }
     }
-    while(1) {
+    while(!stop_Button) {
         for (int flr = 0; flr < N_FLOORS; flr++){
             if( elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 elevator_calls[flr][BUTTON_CALL_UP] = 1;
-                lamps.button[flr][BUTTON_CALL_UP] = 1;
             }
             if( elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
                 elevator_calls[flr][BUTTON_CALL_DOWN] = 1;
-                lamps.button[flr][BUTTON_CALL_DOWN] = 1;
             }
             if( elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
                 elevator_calls[flr][BUTTON_COMMAND] = 1;
-                lamps.button[flr][BUTTON_COMMAND] = 1;
+            }
+        }
+        for (int flr = 0; flr < N_FLOORS; flr++){
+            for (int btn = 0; btn < N_BUTTONS; btn++){
+                lamps.button[flr][btn] = elevator_calls[flr][btn];
             }
         }
         setLamps(lamps);
+        if(elev_get_stop_signal()){
+            stop_Button = true;
+        }
     }
     
 }
+
+void printToLog(){
+    FILE *logFile;
+    logFile = fopen("/home/student/Desktop/logFile.txt" , "a");
+
+    fprintf(logFile, "[F]loor [U]p [D]own [C]ommand\n");
+    fprintf(logFile, "+---+-------+\n| F | U D C |\n+---+-------+\n");
+    for (int flr = 3; flr != -1; flr--) {
+        fprintf(logFile, "| %d |", flr + 1);
+        for (int btn = 0; btn < 3; btn++) {
+            if (elevator_calls[flr][btn] == 1)
+                fprintf(logFile, " #");
+            else
+                fprintf(logFile, "  ");
+        }
+        fprintf(logFile, " |\n");
+    }
+    fprintf(logFile, "+---+-------+\n");
+    fprintf(logFile, "Elevator floor: %d\n", elevator.floor);
+    fprintf(logFile, "Elevator state: %d\n", elevator.state);
+
+    fclose(logFile);
+}
+
+void *logMonitor(){
+     //Reset Matrix
+    for(int flr = 0; flr < N_FLOORS; flr++){        
+            for(int btn = 0; btn < N_BUTTONS; btn++){ 
+                prev_elevator_calls[flr][btn] = 0;
+            }
+        }
+    int stop = 0;
+    while(!stop_Button){
+        stop = 0;
+        for(int flr = 0; flr < N_FLOORS && !stop; flr++){
+            for(int btn = 0; btn < N_BUTTONS && !stop; btn++){
+                if(prev_elevator_calls[flr][btn] != elevator_calls[flr][btn]){
+                    stop = 1;
+                    for(int flr = 0; flr < N_FLOORS; flr++){
+                        for(int btn = 0; btn < N_BUTTONS; btn++){
+                            prev_elevator_calls[flr][btn] = elevator_calls[flr][btn];            
+                        }
+                     }
+                     printState();
+                     printToLog();
+                }
+            }
+        }
+    }
+}
+
+
 
 void *elevatorState(){
     ES_Panel_Lamps lamps;
@@ -254,20 +316,13 @@ void *elevatorState(){
 }*/
 
 void openDoor(){
-    findFloor();
-    elev_set_door_open_lamp(10);
-    sleep(1);
-    elev_set_door_open_lamp(0); // Denne er kanskje ingen vits med tanke på at dette kan styres lampesystemet. Men bevarer til enkel testing.
-
+    lamps.door_open = ON;
+    setLamps(lamps);
+    sleep(2); //Door open for 2 seconds;
+    lamps.door_open = OFF;
+    setLamps(lamps);
 }
 
-void upState(){
-
-}
-
-void downState(){
-
-}
 
 int checkAbove(int fl){
     for (int flr = fl + 1; flr < N_FLOORS; flr++ ){
@@ -280,30 +335,30 @@ int checkAbove(int fl){
 
 int checkBelow(int fl){
     for (int flr = fl - 1; flr > -1; flr-- ){
-        if(elevator_calls[flr][0] == 1 || elevator_calls[flr][2] == 1){
+        if(elevator_calls[flr][1] == 1 || elevator_calls[flr][2] == 1){
             return 1;
         }
     }
     return 0;
 }
 
-void elevatorControl(){
-    findFloor();
-    //Initialize monitor
-    pthread_t SystemMonitor;
-    pthread_create(&SystemMonitor,NULL,systemState,"Processing...");
+void initializeSystem(){
 
-    //Condition for the elevator to run
-    bool stop_Button = false;
+    findFloor();
+
+    //Reset Matrix
+    for(int flr = 0; flr < N_FLOORS; flr++){        
+            for(int btn = 0; btn < N_BUTTONS; btn++){ 
+                elevator_calls[flr][btn] = 0;
+            }
+        }
 
     //Initialize elevator
-    Elevator elevator;
     elevator.state = IDLE;
     elevator.direction = DIRN_STOP;
     elevator.floor = elev_get_floor_sensor_signal();
 
     //Initialize lamp system;
-    ES_Panel_Lamps lamps;
     for(int flr = 0; flr < N_FLOORS; flr++){        
             for(int btn = 0; btn < N_BUTTONS; btn++){ 
                 lamps.button[flr][btn] = OFF;
@@ -314,83 +369,77 @@ void elevatorControl(){
     lamps.current_floor = elevator.floor;
     setLamps(lamps);
 
+}
+
+void elevatorControl(){
+    initializeSystem(); // Initialize order matrix, findFloor(), elevator struct and lamp struct.
+    
+    //Initialize monitor
+    pthread_t SystemMonitor;
+    pthread_create(&SystemMonitor,NULL,systemState,"Processing...");
+
+    pthread_t LogMonitor;
+    pthread_create(&LogMonitor,NULL,*logMonitor,"Processing...");
 
     //Starting elevator operation loop
     while(!stop_Button){
-        if(elev_get_stop_signal()){
-            elevator.state = STOPPED;
-        }
         switch (elevator.state){
             case IDLE: //IDLE STATE
                 for(int flr = 0; flr < N_FLOORS; flr++){
                     for (int btn = 0; btn < N_BUTTONS; btn++){ //Go through matrix and search for orders.
-                        if(btn == 2){ //Command
-                            if(flr == elevator.floor){}
-                            else if(flr > elevator.floor){
-                                elevator.state = MOVING_UP;
+                        if (elevator_calls[flr][btn] == 1){
+                            if(btn == 2){ //COMMAND-BUTTON
+                                if(flr == elevator.floor){
+                                    sleep(1);
+                                    elevator_calls[elevator.floor][2] = 0;
+                                }
+                                else if(flr > elevator.floor){
+                                    elevator.state = MOVING_UP;
+                                }
+                                else if(flr < elevator.floor){
+                                    elevator.state = MOVING_DOWN;
+                                }
                             }
-                            else if(flr < elevator.floor){
-                                elevator.state = MOVING_DOWN;
+                            else if(btn == 1){//DOWN-BUTTOn
+                                if(flr == elevator.floor){
+                                    openDoor(); //Open door for 2 seconds
+                                    elevator.state = IDLE;
+                                    elevator_calls[elevator.floor][1] = 0;
+                                }
+                                else if(flr > elevator.floor){
+                                    elevator.state = MOVING_UP;
+                                }
+                                else if(flr < elevator.floor){
+                                    elevator.state = MOVING_DOWN;
+                                }
                             }
-                        }
-                        else if(btn == 1){//Down
-                            if(flr == elevator.floor){
-                                //Open door
-                                lamps.door_open = ON;
-                                setLamps(lamps);
-                                sleep(2); //Door open for 2 seconds;
-                                lamps.door_open = OFF;
-                                setLamps(lamps);
-
-                                elevator.state = MOVING_DOWN;
-
-                            }
-                            else if(flr > elevator.floor){
-                                elevator.state = MOVING_UP;
-                            }
-                            else if(flr < elevator.floor){
-                                elevator.state = MOVING_DOWN;
-                            }
-                        }
-                        else if(btn == 0){//Up
-                              if(flr == elevator.floor){
-                                //Open door
-                                lamps.door_open = ON;
-                                setLamps(lamps);
-                                sleep(2); //Door open for 2 seconds;
-                                lamps.door_open = OFF;
-                                setLamps(lamps);
-
-                                elevator.state = MOVING_UP;
-
-                            }
-                            else if(flr > elevator.floor){
-                                elevator.state = MOVING_UP;
-                            }
-                            else if(flr < elevator.floor){
-                                elevator.state = MOVING_DOWN;
+                            else if(btn == 0){//UP-BUTTON
+                                if(flr == elevator.floor){
+                                    openDoor(); //Open door for 2 seconds
+                                    elevator.state = IDLE;
+                                    elevator_calls[elevator.floor][0] = 0;
+                                }
+                                else if(flr > elevator.floor){
+                                    elevator.state = MOVING_UP;
+                                }
+                                else if(flr < elevator.floor){
+                                    elevator.state = MOVING_DOWN;
+                                }
                             }
                         }
                     }
                 }
                 break;
-            case MOVING_UP: // Down
+            case MOVING_UP: // UP-STATE
                 if(elevator.floor != N_FLOORS - 1){
-                    goUp();
-                    //Update elevator floor;
-                    elevator.floor = elev_get_floor_sensor_signal();
-
-                    //Update light
-                    lamps.current_floor = elevator.floor;
+                    goUp(); //Goes 1 floor up
+                    elevator.floor = elev_get_floor_sensor_signal(); //Update elevator floor;
+                    lamps.current_floor = elevator.floor; //Update floor light
                     setLamps(lamps);
-
                     if (elevator_calls[elevator.floor][0] == 1 || elevator_calls[elevator.floor][2] == 1){
-                        //Open door
-                        lamps.door_open = ON;
-                        setLamps(lamps);
-                        sleep(2); //Door open for 2 seconds;
-                        lamps.door_open = OFF;
-                        setLamps(lamps);
+                        openDoor(); //Open door for 2 seconds
+                        elevator_calls[elevator.floor][2] = 0;
+                        elevator_calls[elevator.floor][0] = 0;
 
                         if(checkAbove(elevator.floor) == 1){
                             elevator.state = MOVING_UP;
@@ -399,36 +448,27 @@ void elevatorControl(){
                             elevator.state = IDLE;
                         }
                     }
-
+                    else if (elevator_calls[elevator.floor][1] == 1){
+                        openDoor(); //Open door for 2 seconds
+                        elevator_calls[elevator.floor][1] = 0;
+                        elevator.state = IDLE;
+                    }
                 }
-                 else{
-                     //Open door
-                    lamps.door_open = ON;
-                    setLamps(lamps);
-                    sleep(2); //Door open for 2 seconds;
-                    lamps.door_open = OFF;
-                    setLamps(lamps);
+                else{
+                    openDoor(); //Open door for 2 seconds
                 }
                         
                 break;
-            case MOVING_DOWN: //Up
+            case MOVING_DOWN: //DOWN-STATE
                 if(elevator.floor != 0){
                     goDown();
-                    //Update elevator floor;
-                    elevator.floor = elev_get_floor_sensor_signal();
-
-                    //Update light
-                    lamps.current_floor = elevator.floor;
+                    elevator.floor = elev_get_floor_sensor_signal(); //Update elevator floor;
+                    lamps.current_floor = elevator.floor; //Update floor light
                     setLamps(lamps);
-
-                    if (elevator_calls[elevator.floor][0] == 1 || elevator_calls[elevator.floor][2] == 1){
-                        //Open door
-                        lamps.door_open = ON;
-                        setLamps(lamps);
-                        sleep(2); //Door open for 2 seconds;
-                        lamps.door_open = OFF;
-                        setLamps(lamps);
-
+                    if (elevator_calls[elevator.floor][1] == 1 || elevator_calls[elevator.floor][2] == 1){
+                        openDoor(); //Open door for 2 seconds
+                        elevator_calls[elevator.floor][2] = 0;
+                        elevator_calls[elevator.floor][1] = 0;
                         if(checkBelow(elevator.floor) == 1){
                             elevator.state = MOVING_DOWN;
                         }
@@ -436,26 +476,24 @@ void elevatorControl(){
                             elevator.state = IDLE;
                         }
                     }
+                    else if (elevator_calls[elevator.floor][0] == 1){
+                        openDoor(); //Open door for 2 seconds
+                        elevator_calls[elevator.floor][0] = 0;
+                        elevator.state = IDLE;
+                    }
 
                 }
                 else{
-                     //Open door
-                    lamps.door_open = ON;
-                    setLamps(lamps);
-                    sleep(2); //Door open for 2 seconds;
-                    lamps.door_open = OFF;
-                    setLamps(lamps);
+                    openDoor(); //Open door for 2 seconds
                 }
-                break;
-            case STOPPED:
-                stop_Button = true;
                 break;
         }
     }
-
-    //Kill monitor
-    pthread_join(SystemMonitor,NULL);
+    pthread_join(SystemMonitor,NULL); //Kill monitor
+    pthread_join(LogMonitor,NULL); //Kill monitor
 }
+
+
 
 /*
 Choose direction:
@@ -473,11 +511,9 @@ Should stop:
 
 
 int main(){
-    elev_init(ET_Simulation); // ET_Comedi or ET_Simulation
+    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
     //systemState();
     elevatorControl();
     //threadTest();
-    //goDown();
-    //goDown();
     //goDown();
 }
