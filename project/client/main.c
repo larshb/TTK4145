@@ -425,7 +425,7 @@ void elevatorControl(){
                         //Open door
                         lamps.door_open = ON;
                         setLamps(lamps);
-                        sleep(2); //Døra åpen i 2 sekund;
+                        sleep(2); //Door open for 2 seconds;
                         lamps.door_open = OFF;
                         setLamps(lamps);
 
@@ -442,7 +442,7 @@ void elevatorControl(){
                      //Open door
                     lamps.door_open = ON;
                     setLamps(lamps);
-                    sleep(2); //Døra åpen i 2 sekund;
+                    sleep(2); //Door open for 2 seconds;
                     lamps.door_open = OFF;
                     setLamps(lamps);
                 }
