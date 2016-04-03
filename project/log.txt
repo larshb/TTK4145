@@ -1,0 +1,3 @@
+log.txt
+
+elevator has MOVING state instead of MOVING_UP / MOVING_DOWN
