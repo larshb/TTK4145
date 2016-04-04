@@ -42,6 +42,49 @@ void elevator_move(Elevator e) {
         elev_set_motor_direction(DIRN_DOWN);
 }
 
+void elevator_stop() {
+    elev_set_motor_direction(DIRN_STOP);
+}
+
+int elevator_should_stop(Elevator e, int req[N_FLOORS][2]) {
+    if ((e.floor == 0 && e.direction == DOWN) || (e.floor == N_FLOORS - 1 && e.direction == UP) || e.call[e.floor] || req[e.floor][e.direction])
+        return 1;
+    else { //no further opposite direction requests
+        if (e.direction == UP) {
+            for (int flr = e.floor + 1; flr < N_FLOORS; flr++) {
+                if (req[flr][UP] || req[flr][DOWN] || e.call[flr])
+                    return 0;
+            }
+        }
+        else {
+            for (int flr = 0; flr < e.floor; flr++) {
+                if (req[flr][DOWN] || req[flr][UP] || e.call[flr])
+                    return 0;
+            }
+        }
+        return 1;
+    }
+    return 0;
+}
+
+int elevator_should_advance(Elevator e, int req[N_FLOORS][2]) {
+    if (e.direction == UP && e.floor < N_FLOORS - 1) {
+        for (int flr = e.floor + 1; flr < N_FLOORS; flr++){
+            if(e.call[flr] || req[flr][UP] || req[flr][DOWN]){
+                return 1;
+            }
+        }
+    }
+    else if (e.direction == DOWN && e.floor > 0) {
+        for (int flr = 0; flr < e.floor; flr++){
+            if(e.call[flr] || req[flr][DOWN] || req[flr][UP]){
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 char* elevator_state_to_string(Elevator e) {
     switch(e.state) {
         case IDLE:          return "IDLE";
@@ -51,37 +94,3 @@ char* elevator_state_to_string(Elevator e) {
     }
     return "ERROR";
 }
-
-/*
-void elevator_go_down(){
-    elevator_reset_floor();
-    //int currFlr = elev_get_floor_sensor_signal();
-    if (elev_get_floor_sensor_signal() > 0){
-        elev_set_motor_direction(DIRN_DOWN);
-        elevator.direction = DIRN_DOWN; 
-        while (elev_get_floor_sensor_signal() != elevator.floor - 1); //makes the program wait
-        elev_set_motor_direction(DIRN_STOP);
-        elevator.direction = DIRN_STOP;
-    }
-}
-
-void elevator_go_up(){
-    elevator_reset_floor();
-    //int currFlr = elev_get_floor_sensor_signal(); 
-    if (elev_get_floor_sensor_signal() < 3){
-        elev_set_motor_direction(DIRN_UP);
-        elevator.direction = DIRN_UP;
-        while (elev_get_floor_sensor_signal() != elevator.floor + 1);
-        elev_set_motor_direction(DIRN_STOP);
-        elevator.direction = DIRN_STOP;
-    }
-}
-
-void elevator_open_door(){
-    lamps.door_open = ON;
-    setLamps(lamps);
-    sleep(2); //Door open for 2 seconds;
-    lamps.door_open = OFF;
-    setLamps(lamps);
-}
-*/
