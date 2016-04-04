@@ -31,8 +31,8 @@ pthread_mutex_t lock2;
 
 void panel_set_lamps() {
     for (int flr = 0; flr < N_FLOORS - 1; flr++) {
-        elev_set_button_lamp(DIRN_UP, flr, elevator_request[flr][0]);
-        elev_set_button_lamp(DIRN_DOWN, flr + 1, elevator_request[flr + 1][1]);
+        elev_set_button_lamp(BUTTON_CALL_UP, flr, elevator_request[flr][0]);
+        elev_set_button_lamp(BUTTON_CALL_DOWN, flr + 1, elevator_request[flr + 1][1]);
     }
 }
 
@@ -49,34 +49,56 @@ int order_available(Elevator e) {
 }
 
 int should_stop(Elevator e) {
-    if (e.floor == 0 || e.floor == N_FLOORS - 1 || e.call[e.floor] || elevator_request[e.floor][e.direction])
-        return 1;
+    //if (elev_get_floor_sensor_signal() != -1) {
+        printf("elevator_request[%d][%d]=%d", e.floor, e.direction, elevator_request[e.floor][e.direction]);
+        if ((e.floor == 0 && e.direction == DOWN) || (e.floor == N_FLOORS - 1 && e.direction == UP) || e.call[e.floor] || elevator_request[e.floor][e.direction])
+            return 1;
+        else { //no further opposite direction requests
+            if (e.direction == UP) {
+                for (int flr = e.floor + 1; flr < N_FLOORS; flr++) {
+                    if (elevator_request[flr][DOWN])
+                        return 0;
+                }
+            }
+            else {
+                for (int flr = 0; flr < e.floor; flr++) {
+                    if (elevator_request[flr][UP])
+                        return 0;
+                }
+            }
+            return 1;
+        }
+    //}
     return 0;
 }
 
 int should_advance(Elevator e) {
-    if (e.direction == DOWN && e.floor > 0) {
-        for (int flr = e.floor - 1; flr > -1; flr--){
-            if(e.call[flr] || elevator_request[flr][DOWN]){
+    if (e.direction == UP && e.floor < N_FLOORS - 1) {
+        for (int flr = e.floor + 1; flr < N_FLOORS; flr++){
+            if(e.call[flr] || elevator_request[flr][UP] || elevator_request[flr][UP]){
                 return 1;
             }
         }
     }
-    else if (e.direction == UP && e.floor < N_FLOORS - 1) {
-        for (int flr = e.floor + 1; flr < N_FLOORS; flr++){
-            if(e.call[flr] || elevator_request[flr][UP]){
+    else if (e.direction == DOWN && e.floor > 0) {
+        for (int flr = 0; flr < e.floor; flr++){
+            if(e.call[flr] || elevator_request[flr][DOWN] || elevator_request[flr][UP]){
                 return 1;
             }
         }
     }
     return 0;
+}
+
+int order_at_current_floor(Elevator e) {
+    return elevator_request[e.floor][e.direction] || e.call[e.floor];
 }
 
 void d_print_state() {
     printf("\n[F]loor [U]p [D]own [C]ommand\n\n");
     printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
     for (int flr = 3; flr != -1; flr--) {
-        printf("| %d |", flr + 1);
+        printf("| %d |", flr);
         for (int btn = 0; btn < 2; btn++) {
             if (elevator_request[flr][btn] == 1)
                 printf(" #");
@@ -87,15 +109,51 @@ void d_print_state() {
             printf(" #");
         else
             printf("  ");
-        printf(" |\n");
+        printf(" |");
+        if (flr == elevator.floor) {
+            if (elevator.state != MOVING) {
+                if (elevator.state == DOORS_OPEN)
+                    printf("[ ]");
+                else
+                    printf("+");
+            }
+            else {
+                if (elevator.direction == UP)
+                    printf("^");
+                else
+                    printf("v");
+            }
+        }
+        printf("\n");
     }
     printf("+---+-------+\n");
-    printf("Elevator floor: %d\n", elevator.floor + 1);
-    printf("Elevator state: %d\n", elevator.state);
+    printf("Elevator floor: %d\n", elevator.floor);
+    char* state_str;
+    switch(elevator.state) {
+        case IDLE:
+        state_str = "IDLE";
+        break;
+        case MOVING:
+        state_str = "MOVING";
+        break;
+        case DOORS_OPEN:
+        state_str = "DOORS_OPEN";
+        break;
+        case STOPPED:
+        state_str = "STOPPED";
+        break;
+    }
+    printf("Elevator state: %s\n", state_str);
 }
 
 void *button_monitor(){
+    int floor_result;
     while(!stop_Button) {
+        floor_result = elev_get_floor_sensor_signal();
+        if (floor_result != -1)
+            elevator.floor = floor_result;
+        panel_set_lamps();
+        elevator_set_lamps(elevator);
         for (int flr = 0; flr < N_FLOORS; flr++){
             if( elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 elevator_request[flr][0] = 1;
@@ -107,12 +165,6 @@ void *button_monitor(){
                 elevator.call[flr] = 1;
             }
         }
-        /*for (int flr = 0; flr < N_FLOORS; flr++){
-            for (int btn = 0; btn < N_BUTTONS; btn++){
-                lamps.button[flr][btn] = elevator_calls[flr][btn];
-            }
-        }
-        _setLamps(lamps);*/
         if(elev_get_stop_signal()){
             stop_Button = 1;
         }
@@ -241,6 +293,8 @@ void *elevatorState(){
 
 void initializeSystem(){
 
+    printf("Initializing...\n");
+
     elevator_reset_floor();
 
     //Reset Matrix
@@ -255,90 +309,70 @@ void initializeSystem(){
     elevator.state = IDLE;
     elevator.floor = elev_get_floor_sensor_signal();
     elevator.direction = UP;
-
-    //Initialize lamp system;
-    /*for (int flr = 0; flr < N_FLOORS; flr++){        
-        for (int btn = 0; btn < N_BUTTONS; btn++){ 
-            lamps.button[flr][btn] = OFF;
-        }
-    }
-    lamps.stop = OFF;
-    lamps.door_open = OFF;
-    lamps.current_floor = elevator.floor;
-    _setLamps(lamps);
-    */
 }
 
-void elevatorControl(){
+void elevatorControl() {
     initializeSystem(); // Initialize order matrix, elevator_reset_floor(), elevator struct and lamp struct.
     
     //Initialize monitor
-    pthread_t button_manager;
-    pthread_create(&button_manager,NULL,button_monitor,"Processing...");
+    pthread_t button_monitor_t;
+    pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
 
     //pthread_t LogMonitor;
     //pthread_create(&LogMonitor,NULL,*logMonitor,"Processing...");
-    int state_change = 0;
-    panel_set_lamps();
+    Elevator_State prev_state = elevator.state;
+    d_print_state();
+    int prev_floor = elevator.floor;
+    int iii = 1;
+    printf("Iteration: %d", iii++);
     while (!stop_Button) {
-        if (state_change) {
+        if (elevator.state != prev_state) {
             d_print_state();
-            state_change = 0;
+            printf("Iteration: %d", iii++);
+            prev_state = elevator.state;
         }
         switch (elevator.state) {
             case IDLE:
-            if (order_available(elevator)) {
-                if (!should_advance(elevator))
-                    elevator.direction = !elevator.direction;
-                elevator.state = MOVING;
-                state_change = 1;
+            if (order_at_current_floor(elevator)) {
+                elevator.state = DOORS_OPEN;
+                elevator.call[elevator.floor] = 0;
+                elevator_request[elevator.floor][elevator.direction] = 0;
+                sleep(1);
+                printf("\nA\n");
             }
+            else if (should_advance(elevator)) {
+                prev_floor = elevator.floor;
+                printf("\nprev_floor=%d\n",prev_floor);
+                elevator_move(elevator);
+                elevator.state = MOVING;
+                printf("\nB\n");
+            }
+            else
+                elevator.direction = !elevator.direction;
             break;
             case MOVING:
-            if (elev_get_floor_sensor_signal() != -1) {
-                elevator.floor = elev_get_floor_sensor_signal();
-                state_change = 1;
-            }
-            if (elevator.direction == UP) {
-                elev_set_motor_direction(DIRN_UP);
-                state_change = 1;
-            }
-            else {
-                elev_set_motor_direction(DIRN_DOWN);
-                state_change = 1;
-            }
-            if (should_stop(elevator)) {
+            if (elevator.floor != prev_floor && should_stop(elevator)){
                 elev_set_motor_direction(DIRN_STOP);
                 elevator.state = DOORS_OPEN;
-                state_change = 1;
+                elevator.call[elevator.floor] = 0;
+                elevator_request[elevator.floor][elevator.direction] = 0;
             }
             break;
             case DOORS_OPEN:
-            if (elevator.direction == UP) 
-                elevator_request[elevator.floor][0] = 0;
-            else
-                elevator_request[elevator.floor][1] = 0;
-            elevator.call[elevator.floor] = 0;
-            sleep(2);
             if (should_advance(elevator)) {
+                prev_floor = elevator.floor;
+                elevator_move(elevator);
                 elevator.state = MOVING;
-                if (elevator.direction == UP)
-                    elev_set_motor_direction(DIRN_UP);
-                else
-                    elev_set_motor_direction(DIRN_DOWN);
-                printf("\n\nSHOULD MOVE, elevator.direction=%d\n\n", elevator.direction);
             }
-            else {
+            else
                 elevator.state = IDLE;
-                printf("\n\nSHOULD NOT MOVE\n\n");
-            }
-            state_change = 1;
             break;
             case STOPPED:
             //
             break;
         }
     }
+    elev_set_motor_direction(DIRN_STOP);
 
     //Starting elevator operation loop
     /*
@@ -449,7 +483,7 @@ void elevatorControl(){
                 break;
         }
     }*/
-    pthread_join(button_manager,NULL); //Kill monitor
+    pthread_join(button_monitor_t,NULL); //Kill monitor
     //pthread_join(LogMonitor,NULL); //Kill monitor
 }
 
@@ -471,7 +505,7 @@ Should stop:
 
 
 int main(){
-    elev_init(ET_Simulation); // ET_Comedi or ET_Simulation
+    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
     elev_set_motor_direction(DIRN_STOP);
     //button_monitor();
     elevatorControl();

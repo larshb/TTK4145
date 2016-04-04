@@ -8,8 +8,8 @@ typedef enum {
 } Elevator_State;
 
 typedef enum {
-	UP,
-	DOWN
+	UP = 0,
+	DOWN = 1
 } Elevator_Direction;
 
 typedef struct {
@@ -23,6 +23,8 @@ void elevator_set_lamps(Elevator e) {
 	elev_set_floor_indicator(e.floor);
 	elev_set_door_open_lamp(e.state == DOORS_OPEN);
 	elev_set_stop_lamp(e.state == STOPPED);
+    for (int flr = 0; flr < N_FLOORS; flr++)
+        elev_set_button_lamp(BUTTON_COMMAND, flr, e.call[flr]);
 }
 
 void elevator_reset_floor() {
@@ -31,6 +33,13 @@ void elevator_reset_floor() {
 		while(elev_get_floor_sensor_signal() == -1);
 		elev_set_motor_direction(DIRN_STOP);
 	}
+}
+
+void elevator_move(Elevator e) {
+    if (e.direction == UP)
+        elev_set_motor_direction(DIRN_UP);
+    else
+        elev_set_motor_direction(DIRN_DOWN);
 }
 
 /*
