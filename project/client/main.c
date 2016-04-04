@@ -10,55 +10,31 @@
 //#include "debug.c"
 #include <unistd.h> // sleep
 
-typedef enum { OFF, ON } ES_Lamp_State;
+/*typedef enum { OFF, ON } ES_Lamp_State;
 
 typedef struct {
     int             current_floor;
     ES_Lamp_State   button[N_FLOORS][N_BUTTONS];
     ES_Lamp_State   stop;
     ES_Lamp_State   door_open;
-} ES_Panel_Lamps;
-
-
+} ES_Panel_Lamps;*/
 
 static Elevator elevator;
-static ES_Panel_Lamps lamps;
+//static ES_Panel_Lamps lamps;
 static int stop_Button = 0;
 static int elevator_request[N_FLOORS][2];
-static int elevator_call[N_FLOORS]; //debug only
-static int prev_elevator_calls[N_FLOORS][N_BUTTONS];
+//static int elevator_call[N_FLOORS]; //debug only
+//static int prev_elevator_calls[N_FLOORS][N_BUTTONS];
 
 pthread_mutex_t lock1;
 pthread_mutex_t lock2;
 
-
-
-
-void d_print_state() {
-    printf("\n[F]loor [U]p [D]own [C]ommand\n\n");
-    printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
-    for (int flr = 3; flr != -1; flr--) {
-        printf("| %d |", flr + 1);
-        for (int btn = 0; btn < 2; btn++) {
-            if (elevator_request[flr][btn] == 1)
-                printf(" #");
-            else
-                printf("  ");
-        }
-        if (elevator.call[flr])
-            printf(" #");
-        else
-            printf("  ");
-        printf(" |\n");
+void panel_set_lamps() {
+    for (int flr = 0; flr < N_FLOORS - 1; flr++) {
+        elev_set_button_lamp(DIRN_UP, flr, elevator_request[flr][0]);
+        elev_set_button_lamp(DIRN_DOWN, flr + 1, elevator_request[flr + 1][1]);
     }
-    printf("+---+-------+\n");
-    printf("Elevator floor: %d\n", elevator.floor + 1);
-    printf("Elevator state: %d\n", elevator.state);
 }
-
-
-
-
 
 int order_available(Elevator e) {
     for (int flr = 0; flr < N_FLOORS; flr++) {
@@ -96,24 +72,26 @@ int should_advance(Elevator e) {
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
-void _setLamps(ES_Panel_Lamps lamps) {
-    elev_set_floor_indicator(lamps.current_floor);
-    elev_set_door_open_lamp(lamps.door_open);
-    elev_set_stop_lamp(lamps.stop);
-    for (int flr = 0; flr < N_FLOORS; flr++) {
-        for (int btn = 0; btn < N_BUTTONS; btn++) 
-            elev_set_button_lamp(btn, flr, lamps.button[flr][btn]);
-        // may implement not setting non-existent lamps
+void d_print_state() {
+    printf("\n[F]loor [U]p [D]own [C]ommand\n\n");
+    printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
+    for (int flr = 3; flr != -1; flr--) {
+        printf("| %d |", flr + 1);
+        for (int btn = 0; btn < 2; btn++) {
+            if (elevator_request[flr][btn] == 1)
+                printf(" #");
+            else
+                printf("  ");
+        }
+        if (elevator.call[flr])
+            printf(" #");
+        else
+            printf("  ");
+        printf(" |\n");
     }
+    printf("+---+-------+\n");
+    printf("Elevator floor: %d\n", elevator.floor + 1);
+    printf("Elevator state: %d\n", elevator.state);
 }
 
 void *button_monitor(){
@@ -139,8 +117,20 @@ void *button_monitor(){
             stop_Button = 1;
         }
     }
-    
+    return 0;
 }
+
+/*void _setLamps(ES_Panel_Lamps lamps) {
+    elev_set_floor_indicator(lamps.current_floor);
+    elev_set_door_open_lamp(lamps.door_open);
+    elev_set_stop_lamp(lamps.stop);
+    for (int flr = 0; flr < N_FLOORS; flr++) {
+        for (int btn = 0; btn < N_BUTTONS; btn++) 
+            elev_set_button_lamp(btn, flr, lamps.button[flr][btn]);
+        // may implement not setting non-existent lamps
+    }
+}*/
+
 /*
 void printToLog(){
     FILE *logFile;
@@ -212,6 +202,7 @@ void *elevatorState(){
         _setLamps(lamps);
     }
     */
+    return 0;
 }
 
 /*void threadTest(){
@@ -288,7 +279,7 @@ void elevatorControl(){
     //pthread_t LogMonitor;
     //pthread_create(&LogMonitor,NULL,*logMonitor,"Processing...");
     int state_change = 0;
-    elevator.floor = elev_get_floor_sensor_signal();
+    panel_set_lamps();
     while (!stop_Button) {
         if (state_change) {
             d_print_state();
@@ -480,7 +471,7 @@ Should stop:
 
 
 int main(){
-    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
+    elev_init(ET_Simulation); // ET_Comedi or ET_Simulation
     elev_set_motor_direction(DIRN_STOP);
     //button_monitor();
     elevatorControl();

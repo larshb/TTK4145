@@ -37,6 +37,3 @@ int elev_get_button_signal(elev_button_type_t button, int floor);
 int elev_get_floor_sensor_signal(void);
 int elev_get_stop_signal(void);
 int elev_get_obstruction_signal(void);
-
-
-

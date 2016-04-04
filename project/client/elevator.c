@@ -32,6 +32,7 @@ void elevator_reset_floor() {
 		elev_set_motor_direction(DIRN_STOP);
 	}
 }
+
 /*
 void elevator_go_down(){
     elevator_reset_floor();
