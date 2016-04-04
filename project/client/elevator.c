@@ -42,6 +42,16 @@ void elevator_move(Elevator e) {
         elev_set_motor_direction(DIRN_DOWN);
 }
 
+char* elevator_state_to_string(Elevator e) {
+    switch(e.state) {
+        case IDLE:          return "IDLE";
+        case MOVING:        return "MOVING";
+        case DOORS_OPEN:    return "DOORS_OPEN";
+        case STOPPED:       return "STOPPED";
+    }
+    return "ERROR";
+}
+
 /*
 void elevator_go_down(){
     elevator_reset_floor();
