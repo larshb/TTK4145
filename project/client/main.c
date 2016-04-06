@@ -43,6 +43,8 @@ void* button_monitor() {
 
 void initialize(){
     printf("Initializing... ");
+    elev_set_motor_direction(DIRN_STOP);
+    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
     elevator_initialize(&elevator);
     common_initialize(common_request);
     printf("done\n");
@@ -106,11 +108,9 @@ void main_test() {
         }
     }
     pthread_join(button_monitor_t,NULL); //Kill monitor
+    elev_set_motor_direction(DIRN_STOP);
 }
 
 int main(){
-    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
-    elev_set_motor_direction(DIRN_STOP);
     main_test();
-    elev_set_motor_direction(DIRN_STOP);
 }
