@@ -122,11 +122,10 @@ void main_test() {
     elev_set_motor_direction(DIRN_STOP);
 }
 
+#include <time.h>
+
 int main(int argc, char* argv[]){
-    float timeout;
-    timer_set(&timeout, 900);
-    while (!timer_timeout(&timeout));
-    printf("done");
+    main_test();
     return 0;
     if (argc != 2) {
         printHelp();
