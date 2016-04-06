@@ -1,2 +1,2 @@
 make
-./elevator
+./elevator -m

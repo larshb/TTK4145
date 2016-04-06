@@ -54,5 +54,5 @@ void debug_print_state(int* iteration, Elevator* e, int reqs[N_FLOORS][2]) {
     }
     printf("+---+-------%d\n", (*iteration)++);
     printf("Elevator floor: %d\n", e->floor);
-    printf("Elevator state: %s\n", elevator_state_to_string(*e));
+    printf("Elevator state: %s\n", elevator_state_to_string(e));
 }

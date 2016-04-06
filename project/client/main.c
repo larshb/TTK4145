@@ -1,5 +1,7 @@
 #include "elevator.h"
 #include "common.h"
+#include "backup.h"
+#include "timer.c"
 
 #include <stdio.h> // printf 
 #include <pthread.h> // POSIX threads
@@ -52,6 +54,11 @@ void initialize(){
 
 void main_test() {
     initialize();
+
+    // backup
+    system("gnome-terminal -e \"./elevator -b\"");
+    char message[1024] = "Still alive!\n";
+
     pthread_t button_monitor_t;
     pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
     Elevator_State prev_state = elevator.state;
@@ -59,6 +66,10 @@ void main_test() {
     int state_iterator = 1;
     debug_print_state(&state_iterator, &elevator, common_request);
     while (!elev_get_stop_signal()) {
+
+        //backup
+        sendMessage(message);
+
         if (elevator.state != prev_state) {
             debug_print_state(&state_iterator, &elevator, common_request);
             prev_state = elevator.state;
@@ -111,6 +122,32 @@ void main_test() {
     elev_set_motor_direction(DIRN_STOP);
 }
 
-int main(){
-    main_test();
+int main(int argc, char* argv[]){
+    float timeout;
+    timer_set(&timeout, 900);
+    while (!timer_timeout(&timeout));
+    printf("done");
+    return 0;
+    if (argc != 2) {
+        printHelp();
+    }
+    else {
+        if (argv[1][0] == '-') {
+            switch (argv[1][1]) {
+                case 'm':
+                main_test();
+                break;
+                case 'b':
+                runBackup();
+                main_test();
+                break;
+                default:
+                printHelp();
+                break;
+            }
+        }
+        else
+            printHelp();
+    }
+    return 0;
 }
