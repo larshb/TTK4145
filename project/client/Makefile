@@ -5,10 +5,10 @@ CC = gcc
 CFLAGS = -std=gnu11 -g -Wall -Wextra
 
 # Linker flags go here.
-LDFLAGS = -lcomedi -lm
+LDFLAGS = -lcomedi -lm -pthread
 
 # list of sources
-ELEVSRC = elev.c io.c main.c
+ELEVSRC = elev.c io.c main.c elevator.c common.c debug.c backup.c
 
 # program executable file name.
 TARGET = elevator

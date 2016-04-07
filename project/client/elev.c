@@ -10,7 +10,7 @@
 #include "io.h"
 #include "con_load.h"
 
-#define MOTOR_SPEED 4095
+#define MOTOR_SPEED 2800
 
 
 static const int lamp_channel_matrix[N_FLOORS][N_BUTTONS] = {
