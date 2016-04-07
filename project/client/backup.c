@@ -13,8 +13,10 @@
 
 #define PORT 20022
 #define GROUP "127.0.0.1"
-#define TIMEOUT 3 //seconds
+#define TIMEOUT 500 //msec
 #define MESSAGELENGTH 20
+
+static struct timeval timeout_tv;
 
 void printHelp(void) {
 	printf("  -m\t\trun as master\n");
@@ -52,11 +54,7 @@ int recieveMessage(char* message) {
 		perror("socket");
 		exit(1);
 	}
-
-	struct timeval tv;
-	tv.tv_sec = TIMEOUT;
-	tv.tv_usec = 0;
-	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+	if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,&timeout_tv,sizeof(timeout_tv)) < 0) {
 		perror("setsockopt");
 	}
 
@@ -98,17 +96,18 @@ void _runMaster(int i) {
 }
 
 void runBackup(void) {
+	timeout_tv.tv_sec = TIMEOUT / 1000;
+	timeout_tv.tv_usec = (TIMEOUT % 1000) * 1000;
 	printf("~ BACKUP ~\n");
+	printf("Timeout: %ld seconds, %ld microseconds\n\n", timeout_tv.tv_sec, timeout_tv.tv_usec);
 	char message[1024];
 	int bytes;
 	int digits;
 	int count;
 	while (1) {
-		//sleep(1); // debug
 		bytes = recieveMessage(message);
 		if (bytes > 0) {
-			//printf("Message recieved: %s\n", message);
-			printf(".");
+			printf("Message recieved: %s\n", message);
 		}
 		else {
 			printf("Master died!\n");

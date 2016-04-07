@@ -1,13 +1,14 @@
 #include "elevator.h"
 #include "common.h"
 #include "backup.h"
-#include "timer.c"
+#include "timer.h"
 
 #include <stdio.h> // printf 
 #include <pthread.h> // POSIX threads
 #include <semaphore.h> // for what?
 #include <string.h>
 #include <unistd.h> // sleep
+#include <stdlib.h> // system
 
 //Debug
 #include "debug.h"
@@ -45,8 +46,8 @@ void* button_monitor() {
 
 void initialize(){
     printf("Initializing... ");
-    elev_set_motor_direction(DIRN_STOP);
     elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
+    elev_set_motor_direction(DIRN_STOP);
     elevator_initialize(&elevator);
     common_initialize(common_request);
     printf("done\n");
@@ -56,8 +57,9 @@ void main_test() {
     initialize();
 
     // backup
-    system("gnome-terminal -e \"./elevator -b\"");
-    char message[1024] = "Still alive!\n";
+    char message[1024] = "Still alive!";
+    struct timeval message_timer;
+    timer_set(&message_timer, 100);
 
     pthread_t button_monitor_t;
     pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
@@ -68,7 +70,10 @@ void main_test() {
     while (!elev_get_stop_signal()) {
 
         //backup
-        sendMessage(message);
+        if (timer_timeout(&message_timer)) {
+            sendMessage(message);
+            timer_set(&message_timer, 100);
+        }
 
         if (elevator.state != prev_state) {
             debug_print_state(&state_iterator, &elevator, common_request);
@@ -78,10 +83,10 @@ void main_test() {
             case IDLE:
             //current floor call or request in same direction
             if (common_request[elevator.floor][elevator.direction] || elevator.call[elevator.floor]) {
+                elevator_door_open(&elevator);
                 elevator.state = DOORS_OPEN;
                 elevator.call[elevator.floor] = 0;
                 common_request[elevator.floor][elevator.direction] = 0;
-                sleep(1);
             }
             else if (elevator_should_advance(&elevator, common_request)) {
                 prev_floor = elevator.floor;
@@ -94,25 +99,27 @@ void main_test() {
             case MOVING:
             if (elevator.floor != prev_floor && elevator_should_stop(&elevator, common_request)) {
                 elevator_stop();
+                elevator_door_open(&elevator);
                 elevator.state = DOORS_OPEN;
                 elevator.call[elevator.floor] = 0;
                 common_request[elevator.floor][elevator.direction] = 0;
-                sleep(1);
-            }
+            } 
             break;
             case DOORS_OPEN:
-            if (elevator.call[elevator.floor] || common_request[elevator.floor][elevator.direction]) {
-                elevator.call[elevator.floor] = 0;
-                common_request[elevator.floor][elevator.direction] = 0;
-                sleep(1);
+            if (elevator_door_closed(&elevator)) {
+                if (elevator.call[elevator.floor] || common_request[elevator.floor][elevator.direction]) {
+                    elevator.call[elevator.floor] = 0;
+                    common_request[elevator.floor][elevator.direction] = 0;
+                    elevator_door_open(&elevator);
+                }
+                else if (elevator_should_advance(&elevator, common_request)) {
+                    prev_floor = elevator.floor;
+                    elevator_move(&elevator);
+                    elevator.state = MOVING;
+                }
+                else
+                    elevator.state = IDLE;
             }
-            else if (elevator_should_advance(&elevator, common_request)) {
-                prev_floor = elevator.floor;
-                elevator_move(&elevator);
-                elevator.state = MOVING;
-            }
-            else
-                elevator.state = IDLE;
             break;
             case STOPPED:
             break;
@@ -122,7 +129,7 @@ void main_test() {
     elev_set_motor_direction(DIRN_STOP);
 }
 
-#include <time.h>
+#include "timer.c"
 
 int main(int argc, char* argv[]){
     main_test();
@@ -134,11 +141,14 @@ int main(int argc, char* argv[]){
         if (argv[1][0] == '-') {
             switch (argv[1][1]) {
                 case 'm':
+                system("gnome-terminal -e \"./elevator -b\"");
                 main_test();
                 break;
                 case 'b':
                 runBackup();
+                system("clear & gnome-terminal -e \"./elevator -b\"");
                 main_test();
+                //main_test();
                 break;
                 default:
                 printHelp();

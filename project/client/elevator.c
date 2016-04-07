@@ -37,6 +37,14 @@ void elevator_stop() {
     elev_set_motor_direction(DIRN_STOP);
 }
 
+void elevator_door_open(Elevator* e) {
+    timer_set(&e->door_timeout, DOOR_TIME);
+}
+
+int elevator_door_closed(Elevator* e) {
+    return timer_timeout(&e->door_timeout);
+}
+
 int elevator_should_stop(Elevator* e, int req[N_FLOORS][2]) {
     if ((e->floor == 0 && e->direction == DOWN) || (e->floor == N_FLOORS - 1 && e->direction == UP) || e->call[e->floor] || req[e->floor][e->direction])
         return 1;
