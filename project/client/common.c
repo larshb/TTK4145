@@ -1,24 +1,26 @@
 #include "common.h"
-/*
-void common_initialize(int reqs[N_FLOORS][2]) {
-    for (int flr = 0; flr < N_FLOORS; flr++) {        
-        for(int btn = 0; btn < 2; btn++){ 
-            reqs[flr][btn] = 0;
-        }
-    }
+
+static int common_request[N_FLOORS][2]={{0}}; // 0 = not requested, 1 = requested, 2 assigned to this elevator
+
+int common_get_request(int floor, int direction) {
+    return common_request[floor][direction];
 }
-*/
-void common_set_lamps(int reqs[N_FLOORS][2]) {
+
+void common_set_request(int floor, int direction, int ownership) {
+    common_request[floor][direction] = ownership;
+}
+
+void common_set_lamps() {
     for (int flr = 0; flr < N_FLOORS - 1; flr++) {
-        elev_set_button_lamp(BUTTON_CALL_UP, flr, reqs[flr][0]);
-        elev_set_button_lamp(BUTTON_CALL_DOWN, flr + 1, reqs[flr + 1][1]);
+        elev_set_button_lamp(BUTTON_CALL_UP, flr, common_request[flr][0]);
+        elev_set_button_lamp(BUTTON_CALL_DOWN, flr + 1, common_request[flr + 1][1]);
     }
 }
 
-int common_order_available(Elevator* e, int reqs[N_FLOORS][2]) {
+int common_order_available(Elevator* e) {
     for (int flr = 0; flr < N_FLOORS; flr++) {
         for (int btn = 0; btn < 2; btn++) {
-            if (reqs[flr][btn])
+            if (common_request[flr][btn] == 2)
                 return 1;
         }
         if (e->call[flr])

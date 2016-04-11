@@ -1,4 +1,5 @@
 #include "elevator.h"
+#include "common.h"
 
 void elevator_initialize(Elevator* e) {
     elevator_reset_floor();
@@ -45,19 +46,19 @@ int elevator_door_closed(Elevator* e) {
     return timer_timeout(&e->door_timeout);
 }
 
-int elevator_should_stop(Elevator* e, int req[N_FLOORS][2]) {
-    if ((e->floor == 0 && e->direction == DOWN) || (e->floor == N_FLOORS - 1 && e->direction == UP) || e->call[e->floor] || req[e->floor][e->direction])
+int elevator_should_stop(Elevator* e) {
+    if ((e->floor == 0 && e->direction == DOWN) || (e->floor == N_FLOORS - 1 && e->direction == UP) || e->call[e->floor] || common_get_request(e->floor, e->direction) == 2)
         return 1;
     else { //no further opposite direction requests
         if (e->direction == UP) {
             for (int flr = e->floor + 1; flr < N_FLOORS; flr++) {
-                if (req[flr][UP] || req[flr][DOWN] || e->call[flr])
+                if (common_get_request(flr, UP) == 2 || common_get_request(flr, DOWN) == 2 || e->call[flr])
                     return 0;
             }
         }
         else {
             for (int flr = 0; flr < e->floor; flr++) {
-                if (req[flr][DOWN] || req[flr][UP] || e->call[flr])
+                if (common_get_request(flr, DOWN) == 2 || common_get_request(flr, UP) == 2 || e->call[flr])
                     return 0;
             }
         }
@@ -66,17 +67,17 @@ int elevator_should_stop(Elevator* e, int req[N_FLOORS][2]) {
     return 0;
 }
 
-int elevator_should_advance(Elevator* e, int req[N_FLOORS][2]) {
+int elevator_should_advance(Elevator* e) {
     if (e->direction == UP && e->floor < N_FLOORS - 1) {
         for (int flr = e->floor + 1; flr < N_FLOORS; flr++){
-            if(e->call[flr] || req[flr][UP] || req[flr][DOWN]){
+            if(e->call[flr] || common_get_request(flr, UP) == 2 || common_get_request(flr, DOWN) == 2){
                 return 1;
             }
         }
     }
     else if (e->direction == DOWN && e->floor > 0) {
         for (int flr = 0; flr < e->floor; flr++){
-            if(e->call[flr] || req[flr][DOWN] || req[flr][UP]){
+            if(e->call[flr] || common_get_request(flr, DOWN) == 2 || common_get_request(flr, UP) == 2){
                 return 1;
             }
         }

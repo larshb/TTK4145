@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define MASTER_IP "129.241.187.141"
+
 static int sockfd; //, n;
 static char sendline[255];
 static char recvline[255];
@@ -19,17 +21,18 @@ void tcp_client_init() {
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(20022);
  
-    inet_pton(AF_INET, "127.0.0.1", &(servaddr.sin_addr));
+    inet_pton(AF_INET, MASTER_IP, &(servaddr.sin_addr));
  
     connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 }
 
-void tcp_button_send(char button, int floor) {
+void tcp_common_call(char button, char action, int floor) {
     bzero(sendline, 255);
     bzero(recvline, 255);
     sendline[0] = 'b';
-    sendline[1] = button;
-    sendline[2] = floor + '0';
+    sendline[1] = action;
+    sendline[2] = button;
+    sendline[3] = floor + '0';
     write(sockfd, sendline, strlen(sendline)+1);
 }
 

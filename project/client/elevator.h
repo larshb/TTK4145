@@ -32,6 +32,6 @@ void elevator_move(Elevator* e);
 void elevator_stop();
 void elevator_door_open(Elevator* e);
 int elevator_door_closed(Elevator* e);
-int elevator_should_stop(Elevator* e, int req[N_FLOORS][2]);
-int elevator_should_advance(Elevator* e, int req[N_FLOORS][2]);
+int elevator_should_stop(Elevator* e);
+int elevator_should_advance(Elevator* e);
 char* elevator_state_to_string(Elevator* e);
