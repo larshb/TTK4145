@@ -162,8 +162,9 @@ int main(int argc, char* argv[]){
         if (argv[1][0] == '-') {
             switch (argv[1][1]) {
                 case 'm':
-                break;
+                puts("AAAAAA");
                 main_test();
+                break;
                 case 's':
                 tcp_client_init();
                 button_monitor();
@@ -175,7 +176,8 @@ int main(int argc, char* argv[]){
             }
         }
         else
-            printHelp();
+            printf("  -m\t\trun as master\n");
+            printf("  -s\t\trun as slave\n");
     }
     return 0;
 

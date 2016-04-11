@@ -2,4 +2,4 @@
 
 void tcp_server_init();
 void *tcp_server_test();
-void *connection_handler(void *);
+void *elevator_connection_handler(void *);

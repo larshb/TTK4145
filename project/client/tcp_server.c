@@ -1,5 +1,6 @@
 #include "tcp_server.h"
 #include "common.h"
+#include "elevator.h"
 
 #include <stdio.h>
 #include <string.h>     // strlen
@@ -52,7 +53,7 @@ void *tcp_server_test() {
         new_sock = malloc(1);
         *new_sock = client_sock;
          
-        if( pthread_create( &sniffer_thread , NULL ,  connection_handler , (void*) new_sock) < 0) {
+        if( pthread_create( &sniffer_thread , NULL ,  elevator_connection_handler , (void*) new_sock) < 0) {
             perror("could not create thread");
             return 1;
         }
@@ -72,7 +73,7 @@ void *tcp_server_test() {
 /*
  * This will handle connection for each client
  * */
-void *connection_handler(void *socket_desc)
+void *elevator_connection_handler(void *socket_desc)
 {
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
@@ -89,8 +90,8 @@ void *connection_handler(void *socket_desc)
     while( (read_size = recv(sock , client_message , 255 , 0)) > 0 )
     {
         //Send the message back to client
-        write(sock , client_message , strlen(client_message));
-        switch (client_message[0]) {
+        //write(sock , client_message , strlen(client_message));
+        /*switch (client_message[0]) {
             case 'b':
             if (client_message[1] == 'r') {
                 printf("Elevator called ");
@@ -108,7 +109,7 @@ void *connection_handler(void *socket_desc)
             }
             printf(" on floor %c\n", client_message[3]);
             break;
-        }
+        }*/
         switch (client_message[0]) {
         	case 'b':
         	direction = client_message[2] == 'd';
@@ -117,6 +118,8 @@ void *connection_handler(void *socket_desc)
         	common_set_request(floor, direction, ownership);
         	break;
         }
+        printf("%s\n", client_message);
+        write(sock , client_message , strlen(client_message));
     }
      
     if(read_size == 0)
