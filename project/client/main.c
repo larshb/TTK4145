@@ -10,7 +10,7 @@
 #include <unistd.h> // sleep
 #include <stdlib.h> // system
 
-//Debug
+// Debug
 #include "debug.h"
 
 
@@ -57,9 +57,9 @@ void main_test() {
     initialize();
 
     // backup
-    char message[1024] = "Still alive!";
-    struct timeval message_timer;
-    timer_set(&message_timer, 100);
+    // char message[1024] = "Still alive!";
+    // struct timeval message_timer;
+    // timer_set(&message_timer, 100);
 
     pthread_t button_monitor_t;
     pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
@@ -70,10 +70,10 @@ void main_test() {
     while (!elev_get_stop_signal()) {
 
         //backup
-        if (timer_timeout(&message_timer)) {
-            sendMessage(message);
-            timer_set(&message_timer, 100);
-        }
+        // if (timer_timeout(&message_timer)) {
+        //     sendMessage(message);
+        //     timer_set(&message_timer, 100);
+        // }
 
         if (elevator.state != prev_state) {
             debug_print_state(&state_iterator, &elevator, common_request);
@@ -129,11 +129,9 @@ void main_test() {
     elev_set_motor_direction(DIRN_STOP);
 }
 
-#include "timer.c"
-
 int main(int argc, char* argv[]){
     main_test();
-    return 0;
+    return 0; 
     if (argc != 2) {
         printHelp();
     }
