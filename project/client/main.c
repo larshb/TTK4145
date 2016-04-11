@@ -2,38 +2,48 @@
 #include "common.h"
 #include "backup.h"
 #include "timer.h"
+#include "tcp_client.h"
 
 #include <stdio.h> // printf 
 #include <pthread.h> // POSIX threads
 #include <semaphore.h> // for what?
 #include <string.h>
 #include <unistd.h> // sleep
-#include <stdlib.h> // system
+#include <stdlib.h> // system 
 
 // Debug
 #include "debug.h"
 
 
 static Elevator elevator;
-static int common_request[N_FLOORS][2];
+static int common_request[N_FLOORS][2]={{0}};
+static int elevator_request[N_FLOORS][2]={{0}};
 
 void* button_monitor() {
     int floor_result;
     while (!elev_get_stop_signal()) {
         floor_result = elev_get_floor_sensor_signal();
-        if (floor_result != -1)
+        if (floor_result != -1 && floor_result != elevator.floor)
             elevator.floor = floor_result;
         common_set_lamps(common_request);
         elevator_set_lamps(&elevator);
         for (int flr = 0; flr < N_FLOORS; flr++){
             if (elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
-                common_request[flr][0] = 1;
+                if (common_request[flr][0] != 1) {
+                    common_request[flr][0] = 1;
+                    tcp_button_send('u', flr);
+                }
             }
             if (elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
-                common_request[flr][1] = 1;
+                if (common_request[flr][1] != 1) {
+                    common_request[flr][1] = 1;
+                    tcp_button_send('d', flr);
+                }
             }
             if (elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
-                elevator.call[flr] = 1;
+                if (elevator.call[flr] != 1) {
+                    elevator.call[flr] = 1;
+                }
             }
         }
         if (elev_get_stop_signal()){
@@ -49,7 +59,7 @@ void initialize(){
     elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
     elev_set_motor_direction(DIRN_STOP);
     elevator_initialize(&elevator);
-    common_initialize(common_request);
+    //common_initialize(common_request);
     printf("done\n");
 }
 
@@ -130,7 +140,9 @@ void main_test() {
 }
 
 int main(int argc, char* argv[]){
+    tcp_client_init();
     main_test();
+    tcp_client_kill();
     return 0; 
     if (argc != 2) {
         printHelp();

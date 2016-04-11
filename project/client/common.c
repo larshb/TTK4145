@@ -1,5 +1,5 @@
 #include "common.h"
-
+/*
 void common_initialize(int reqs[N_FLOORS][2]) {
     for (int flr = 0; flr < N_FLOORS; flr++) {        
         for(int btn = 0; btn < 2; btn++){ 
@@ -7,7 +7,7 @@ void common_initialize(int reqs[N_FLOORS][2]) {
         }
     }
 }
-
+*/
 void common_set_lamps(int reqs[N_FLOORS][2]) {
     for (int flr = 0; flr < N_FLOORS - 1; flr++) {
         elev_set_button_lamp(BUTTON_CALL_UP, flr, reqs[flr][0]);
