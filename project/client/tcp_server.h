@@ -8,6 +8,6 @@ void *elevator_connection_handler(void *);
 
 
 //DEBUG/FØRSTEUTKAST/////////////////////////
-void add_connected_elevator(int socket);
-void delete_connected_elevator(int socket);
+int add_remote_elevator(int socket);
+void delete_remote_elevator(int elevator_id);
 ////////////////////////////////////////////

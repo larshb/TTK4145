@@ -8,6 +8,7 @@
 #include <netdb.h>
 #include <pthread.h>        // pthread
 #include <stdio.h>
+#include <stdlib.h>         // atoi
 #include <string.h>
 #include <unistd.h>         // write
 
@@ -44,19 +45,55 @@ void tcp_common_call(char button, char action, int floor) {
     tcp_client_send(instruction);
 }
 
-void tcp_client_send(char instruction[255]) {
+int tcp_get_station_rank() { // role (master/slave), rank
+    char instruction[255];
+    bzero(instruction, 255);
+    instruction[0] = 'p';
+    instruction[1] = 'r';
+    const char* recieved = tcp_client_send(instruction);
+    char role_char[4];
+    strncpy(role_char, recieved, 3);
+    return atoi(role_char);
+}
+
+void tcp_update_status(int state, int direction, int floor) {
+    char instruction[255];
+    bzero(instruction, 255);
+    char floor_str[3];
+    sprintf(floor_str, "%03d", floor);
+    instruction[0] = 'u';
+    instruction[1] = 's';
+    switch (state) {
+        case 0:
+        instruction[2] = 'i';
+        break;
+        case 1:
+        instruction[2] = 'm';
+        break;
+        case 2:
+        instruction[2] = 'd';
+        break;
+        case 3:
+        instruction[2] = 's';
+        break;
+    }
+    instruction[3] = direction ? 'd' : 'u';
+    for (int i = 0; i < 3; i++) {
+        instruction[i + 4] = floor_str[i];
+    }
+    tcp_client_send(instruction);
+}
+
+const char* tcp_client_send(char instruction[255]) {
     pthread_mutex_lock(&lock);
     bzero(recvline, 255);
     write(sockfd, instruction, 255);
     recv(sockfd, recvline, 255 , 0);
     if (strcmp(instruction, recvline) != 0)
-        puts("fail");
+        puts("non-echo");
     puts("done");
     pthread_mutex_unlock(&lock);
-}
-
-void tcp_elevator_recieve_assignment() {
-    //recv()
+    return recvline;
 }
 
 void tcp_client_kill() {

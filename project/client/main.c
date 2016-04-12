@@ -1,6 +1,5 @@
 #include "elevator.h"
 #include "common.h"
-//#include "backup.h"
 #include "timer.h"
 #include "tcp_client.h"
 #include "tcp_server.h"
@@ -17,39 +16,22 @@
 
 static Elevator elevator;
 
-void* button_monitor() {
-    tcp_client_init();
-    while (!elev_get_obstruction_signal()) {
-        common_set_lamps();
-        for (int flr = 0; flr < N_FLOORS; flr++){
-            if (elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
-                if (!common_get_request(flr, 0)) {
-                    common_set_request(flr, 0, 1);
-                    tcp_common_call('u', 'r', flr);
-                }
-            }
-            if (elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
-                if (!common_get_request(flr, 1)) {
-                    common_set_request(flr, 1, 1);
-                    tcp_common_call('d', 'r', flr);
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-void main_test() {
+void master_main() {
+    common_init();
     tcp_server_init();
-    pthread_t button_monitor_t;
+    tcp_client_init();
+    pthread_t common_monitor_t;
     pthread_t elevator_monitor_t;
     pthread_t tcp_server_test_t;
-    pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
+    pthread_create(&common_monitor_t,NULL,common_monitor,"Processing...");
     pthread_create(&elevator_monitor_t,NULL,elevator_monitor,&elevator);
     pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
     Elevator_State prev_state = elevator.state;
+    elevator.role = MASTER;
+    elevator.rank = tcp_get_station_rank();
     int prev_floor = elevator.floor;
 
+    printf("My rank: %d   My role: %d\n", elevator.rank, elevator.role);
     //int state_iterator = 1;
     //debug_print_state(&state_iterator, &elevator, 1);
 
@@ -65,6 +47,7 @@ void main_test() {
 
             //debug_print_state(&state_iterator, &elevator, 1);
             
+            tcp_update_status(elevator.state, elevator.direction, elevator.floor);
             prev_state = elevator.state;
         }
         switch (elevator.state) {
@@ -89,7 +72,7 @@ void main_test() {
             case MOVING:
             if (elevator.floor != prev_floor && elevator_should_stop(&elevator)) {
                 elevator_stop();
-                if (common_get_request(elevator.floor, elevator.direction) == 2) {
+                if (common_get_request(elevator.floor, elevator.direction) == 2 || elevator.call[elevator.floor]) {
                     elevator_door_open(&elevator);
                     elevator.state = DOORS_OPEN;
                     elevator.call[elevator.floor] = 0;
@@ -103,6 +86,8 @@ void main_test() {
             break;
             case DOORS_OPEN:
             if (elevator_door_closed(&elevator)) {
+
+                // Open door on request
                 if (elevator.call[elevator.floor] || common_get_request(elevator.floor, elevator.direction) == 2) {
                     elevator.call[elevator.floor] = 0;
                     common_set_request(elevator.floor, elevator.direction, 0);
@@ -110,13 +95,26 @@ void main_test() {
                     tcp_common_call(button, 'c', elevator.floor);
                     elevator_door_open(&elevator);
                 }
+
+                // Continue to next floor
                 else if (elevator_should_advance(&elevator)) {
                     prev_floor = elevator.floor;
                     elevator_move(&elevator);
                     elevator.state = MOVING;
                 }
-                else
-                    elevator.state = IDLE;
+
+                else {
+                    // Continue opposite direction
+                    elevator.direction = !elevator.direction;
+                    if (elevator_should_advance(&elevator)) {
+                        elevator_move(&elevator);
+                        elevator.state = MOVING;
+                    }
+
+                    // Go to idle
+                    else
+                        elevator.state = IDLE;
+                }
             }
             break;
             case STOPPED:
@@ -124,10 +122,11 @@ void main_test() {
         }
     }
     tcp_client_kill();
-    pthread_join(button_monitor_t,NULL); // Kill monitor
+    pthread_join(common_monitor_t,NULL); // Kill monitor
     pthread_join(elevator_monitor_t,NULL);
     pthread_join(tcp_server_test_t, NULL);
     elev_set_motor_direction(DIRN_STOP);
+    common_complete();
 }
 
 void _print_help() {
@@ -143,11 +142,13 @@ int main(int argc, char* argv[]){
         if (argv[1][0] == '-') {
             switch (argv[1][1]) {
                 case 'm':
-                main_test();
+                master_main();
                 break;
                 case 's':
                 tcp_client_init();
-                //button_monitor();
+                int a = tcp_get_station_rank();
+                printf("I have rank: %d\n", a);
+                //common_monitor();
                 break;
                 default:
                 _print_help();
@@ -157,6 +158,7 @@ int main(int argc, char* argv[]){
         else
             _print_help();
     }
+    while(1);
     return 0;
 
 
@@ -173,13 +175,13 @@ int main(int argc, char* argv[]){
             switch (argv[1][1]) {
                 case 'm':
                 system("gnome-terminal -e \"./elevator -b\"");
-                main_test();
+                master_main();
                 break;
                 case 'b':
                 runBackup();
                 system("clear & gnome-terminal -e \"./elevator -b\"");
-                main_test();
-                //main_test();
+                master_main();
+                //master_main();
                 break;
                 default:
                 printHelp();

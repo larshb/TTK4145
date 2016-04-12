@@ -17,12 +17,20 @@ typedef enum {
 	DOWN = 1
 } Elevator_Direction;
 
+typedef enum {
+    SLAVE,
+    MASTER
+} Elevator_Role;
+
 typedef struct {
     int                     floor;
     int 					call[N_FLOORS];
     Elevator_Direction	  	direction;
     Elevator_State          state;
     struct timeval          door_timeout;
+    Elevator_Role           role;
+    int                     rank;
+    int                     active;
 } Elevator;
 
 void* elevator_monitor(void* elevator);

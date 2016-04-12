@@ -1,6 +1,7 @@
 #include "tcp_server.h"
 #include "common.h"
 #include "elevator.h"
+#include "manager.h"
 
 #include <stdio.h>
 #include <string.h>     // strlen
@@ -13,9 +14,7 @@
 static int socket_desc , client_sock , c , *new_sock;
 static struct sockaddr_in server , client;
 
-//DEBUG
-static int connected_elevators[3];
-static int iterator = 0;
+pthread_mutex_t elevator_lock;
 
 void tcp_server_init()
 {
@@ -47,9 +46,10 @@ void tcp_server_init()
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 }
-pthread_mutex_t lock;
+
 void *tcp_server_test() {
-	
+    for (int i = 0; i < MAX_ELEVATORS; i++)
+        remote_elevator[i].active = 0;
 	while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
         puts("Connection accepted");
          
@@ -67,19 +67,9 @@ void *tcp_server_test() {
          
         //Now join the thread , so that we dont terminate before the thread
         //pthread_join( sniffer_thread , NULL);
-
-        //DEBUG
-        add_connected_elevator(client_sock);
         
         pthread_detach(sniffer_thread);
         printf("Handler assigned: %d\n\n", client_sock);
-
-          //DEBUG PRINT
-        for(int i = 0; i< 3; i++){
-            pthread_mutex_lock(&lock);
-            printf("connected_elevator[%d] = %d\n", i, connected_elevators[i]);
-            pthread_mutex_unlock(&lock);
-        }
 
     }
      
@@ -96,12 +86,28 @@ void *tcp_server_test() {
  * */
 void *elevator_connection_handler(void *socket_desc)
 {
+
+
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
     int read_size;
     //char *message
     char client_message[255];
     
+    // add elevator
+    int elevator_id = add_remote_elevator(sock);
+    remote_elevator[elevator_id].rank = sock;
+
+    //DEBUG PRINT
+    for (int i = 0; i < MAX_ELEVATORS; i++) {
+        pthread_mutex_lock(&elevator_lock);
+        printf("remote_elevator[%2d] = %3d\n", i,
+                                                remote_elevator[i].active
+                                                ? remote_elevator[i].rank
+                                                : -1);
+        pthread_mutex_unlock(&elevator_lock);
+    }
+
     //message = "Now type something and i shall repeat what you type \n";
     //write(sock , message , strlen(message));
      
@@ -132,15 +138,53 @@ void *elevator_connection_handler(void *socket_desc)
             printf(" on floor %c\n", client_message[3]);
             break;
         }*/
+
+        printf("Recieved C/S: %s\n", client_message);
         switch (client_message[0]) {
-        	case 'b':
+        	case 'b': // button assignment
         	direction = client_message[2] == 'd';
         	floor = client_message[3] - '0';
-        	ownership = client_message[1] == 'c' ? 0 : 2;
-        	common_set_request(floor, direction, ownership);
+        	ownership = client_message[1] == 'c';
+            if (ownership == 0)
+        	    common_set_request(floor, direction, ownership);
+            else
+                //manager_assign(direction, floor);
         	break;
+
+            case 'p': // polling
+            switch (client_message[1]) {
+                case 'r': // rank
+                sprintf(client_message, "%03d", sock);
+                break;
+            }
+            break;
+
+            case 'u': // update
+            switch (client_message[1]) {
+                case 's': // status
+                switch (client_message[2]) {
+                    case 'i':
+                    remote_elevator[elevator_id].state = 0;
+                    break;
+                    case 'm':
+                    remote_elevator[elevator_id].state = 1;
+                    break;
+                    case 'd':
+                    remote_elevator[elevator_id].state = 2;
+                    break;
+                    case 's':
+                    remote_elevator[elevator_id].state = 3;
+                    break;
+                }
+                remote_elevator[elevator_id].direction = client_message[3] == 'd';
+                char floor_str[3];
+                strncpy(floor_str, client_message + 4, 3);
+                remote_elevator[elevator_id].floor = atoi(floor_str);
+                break;
+            }
+            break;
         }
-        printf("%s\n", client_message);
+        printf("Sending  S/C: %s\n", client_message);
         write(sock , client_message , strlen(client_message));
     }
      
@@ -155,7 +199,7 @@ void *elevator_connection_handler(void *socket_desc)
     }
          
     //Free the socket pointer
-    delete_connected_elevator(sock);
+    delete_remote_elevator(elevator_id);
     free(socket_desc);
     
     printf("Socket freed: %d\n", sock);
@@ -165,27 +209,30 @@ void *elevator_connection_handler(void *socket_desc)
 
 
 //DEBUG/FØRSTEUTKAST////////////////////////
-void add_connected_elevator(int socket){
-    pthread_mutex_lock(&lock);
-    if (iterator < 3){
-        connected_elevators[iterator] = socket;
-        iterator++;
-    }
-    else{
-        puts("Too many connections");
-    }
-    pthread_mutex_unlock(&lock);
-
-}
-
-void delete_connected_elevator(int socket){
-    pthread_mutex_lock(&lock);
-    for(int i = 0; i < 3; i++){
-        if(connected_elevators[i] == socket){
-            iterator = i;
-            connected_elevators[i] = 0;
+int add_remote_elevator(int socket){
+    int elevator_id = -1;
+    pthread_mutex_lock(&elevator_lock);
+    for (int i = 0; i < MAX_ELEVATORS; i++) {
+        if (!remote_elevator[i].active) {
+            remote_elevator[i].active = 1;
+            remote_elevator[i].rank = socket;
+            elevator_id = i;
+            break;
         }
     }
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&elevator_lock);
+    return elevator_id;
+}
+
+void delete_remote_elevator(int elevator_id){
+    pthread_mutex_lock(&elevator_lock);
+    remote_elevator[elevator_id].active = 0;
+    int i = elevator_id + 1;
+    if (remote_elevator[i].active)
+        while(remote_elevator[i + 1].active && i < MAX_ELEVATORS)
+            i++;
+    remote_elevator[elevator_id] = remote_elevator[i];
+    remote_elevator[i].active = 0;
+    pthread_mutex_unlock(&elevator_lock);
 }
 /////////////////////////////////////////////
