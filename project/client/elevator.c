@@ -1,7 +1,52 @@
 #include "elevator.h"
 #include "common.h"
 
+void* elevator_monitor(void* elevator) {
+    Elevator *e = elevator;
+    elevator_initialize(e);
+    int floor_result;
+    while (e->state != STOPPED && !elev_get_obstruction_signal()) {
+        floor_result = elev_get_floor_sensor_signal();
+        if (floor_result != -1 && floor_result != e->floor)
+            e->floor = floor_result;
+        elevator_set_lamps(e);
+        for (int flr = 0; flr < N_FLOORS; flr++){
+            if (elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
+                if (e->call[flr] != 1) {
+                    e->call[flr] = 1;
+                }
+            }
+        }
+        if (elev_get_stop_signal()){
+            elev_set_motor_direction(DIRN_STOP);
+            e->state = STOPPED;
+        }
+    }
+    return 0;
+}
+
+/*
+
+pthread_mutex_t call_lock;
+
+int elevator_get_call(Elevator* e, int flr) {
+    pthread_mutex_lock(&call_lock);
+    //
+    pthread_mutex_unlock(&call_lock);
+}
+
+void elevator_set_call(Elevator* e, int flr, int val) {
+    pthread_mutex_lock(&call_lock);
+    //
+    pthread_mutex_unlock(&call_lock);
+}
+
+*/
+
+
 void elevator_initialize(Elevator* e) {
+    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
+    elev_set_motor_direction(DIRN_STOP);
     elevator_reset_floor();
     for (int flr = 0; flr < N_FLOORS; flr++) {        
         e->call[flr] = 0;

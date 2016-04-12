@@ -25,6 +25,8 @@ typedef struct {
     struct timeval          door_timeout;
 } Elevator;
 
+void* elevator_monitor(void* elevator);
+
 void elevator_initialize(Elevator* e);
 void elevator_set_lamps(Elevator* e);
 void elevator_reset_floor();

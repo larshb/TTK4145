@@ -13,6 +13,10 @@
 static int socket_desc , client_sock , c , *new_sock;
 static struct sockaddr_in server , client;
 
+//DEBUG
+static int connected_elevators[3];
+static int iterator = 0;
+
 void tcp_server_init()
 {
     //Create socket
@@ -43,7 +47,7 @@ void tcp_server_init()
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
 }
-
+pthread_mutex_t lock;
 void *tcp_server_test() {
 	
 	while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
@@ -55,20 +59,37 @@ void *tcp_server_test() {
          
         if( pthread_create( &sniffer_thread , NULL ,  elevator_connection_handler , (void*) new_sock) < 0) {
             perror("could not create thread");
-            return 1;
+            return (int*)1;
+        }
+        else { 
+            puts("Created thread");
         }
          
         //Now join the thread , so that we dont terminate before the thread
         //pthread_join( sniffer_thread , NULL);
-        puts("Handler assigned");
+
+        //DEBUG
+        add_connected_elevator(client_sock);
+        
+        pthread_detach(sniffer_thread);
+        printf("Handler assigned: %d\n\n", client_sock);
+
+          //DEBUG PRINT
+        for(int i = 0; i< 3; i++){
+            pthread_mutex_lock(&lock);
+            printf("connected_elevator[%d] = %d\n", i, connected_elevators[i]);
+            pthread_mutex_unlock(&lock);
+        }
+
     }
      
     if (client_sock < 0) {
         perror("accept failed");
-        return 1;
+        return (int*)1;
     }
     return 0;
 }
+ 
  
 /*
  * This will handle connection for each client
@@ -78,7 +99,8 @@ void *elevator_connection_handler(void *socket_desc)
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
     int read_size;
-    char *message , client_message[255];
+    //char *message
+    char client_message[255];
     
     //message = "Now type something and i shall repeat what you type \n";
     //write(sock , message , strlen(message));
@@ -133,7 +155,37 @@ void *elevator_connection_handler(void *socket_desc)
     }
          
     //Free the socket pointer
+    delete_connected_elevator(sock);
     free(socket_desc);
-     
+    
+    printf("Socket freed: %d\n", sock);
+    
     return 0;
 }
+
+
+//DEBUG/FØRSTEUTKAST////////////////////////
+void add_connected_elevator(int socket){
+    pthread_mutex_lock(&lock);
+    if (iterator < 3){
+        connected_elevators[iterator] = socket;
+        iterator++;
+    }
+    else{
+        puts("Too many connections");
+    }
+    pthread_mutex_unlock(&lock);
+
+}
+
+void delete_connected_elevator(int socket){
+    pthread_mutex_lock(&lock);
+    for(int i = 0; i < 3; i++){
+        if(connected_elevators[i] == socket){
+            iterator = i;
+            connected_elevators[i] = 0;
+        }
+    }
+    pthread_mutex_unlock(&lock);
+}
+/////////////////////////////////////////////

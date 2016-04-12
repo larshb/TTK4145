@@ -1,16 +1,19 @@
-#include "tcp_client.h"
+#include "tcp_client.h" 
 #include "common.h"
 #include "elev.h"
 
+#include <arpa/inet.h>      // inet_pton
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <pthread.h>        // pthread
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>         // write
 
 #include <assert.h>
 
-#define MASTER_IP "129.241.187.141"
+#define MASTER_IP "localhost"
 
 static int sockfd; //, n;
 static char sendline[255];
@@ -33,7 +36,7 @@ void tcp_client_init() {
 
 void tcp_common_call(char button, char action, int floor) {
     char instruction[255];
-    bzero(recvline, 255);
+    bzero(instruction, 255);
     instruction[0] = 'b';
     instruction[1] = action;
     instruction[2] = button;

@@ -12,8 +12,8 @@ void common_set_request(int floor, int direction, int ownership) {
 
 void common_set_lamps() {
     for (int flr = 0; flr < N_FLOORS - 1; flr++) {
-        elev_set_button_lamp(BUTTON_CALL_UP, flr, common_request[flr][0]);
-        elev_set_button_lamp(BUTTON_CALL_DOWN, flr + 1, common_request[flr + 1][1]);
+        elev_set_button_lamp(BUTTON_CALL_UP, flr, common_request[flr][0] > 1);
+        elev_set_button_lamp(BUTTON_CALL_DOWN, flr + 1, common_request[flr + 1][1] > 1);
     }
 }
 

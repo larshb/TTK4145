@@ -5,12 +5,12 @@
 #include "tcp_client.h"
 #include "tcp_server.h"
 
-#include <stdio.h> // printf 
-#include <pthread.h> // POSIX threads
-#include <semaphore.h> // for what?
-#include <string.h>
-#include <unistd.h> // sleep
-#include <stdlib.h> // system 
+#include <stdio.h>      // printf 
+#include <pthread.h>    // POSIX threads
+#include <semaphore.h>  // for what?
+#include <string.h>     // string
+#include <unistd.h>     // sleep
+#include <stdlib.h>     // system 
 
 // Debug
 #include "debug.h"
@@ -18,13 +18,9 @@
 static Elevator elevator;
 
 void* button_monitor() {
-    int floor_result;
-    while (!elev_get_stop_signal()) {
-        floor_result = elev_get_floor_sensor_signal();
-        if (floor_result != -1 && floor_result != elevator.floor)
-            elevator.floor = floor_result;
+    tcp_client_init();
+    while (!elev_get_obstruction_signal()) {
         common_set_lamps();
-        elevator_set_lamps(&elevator);
         for (int flr = 0; flr < N_FLOORS; flr++){
             if (elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 if (!common_get_request(flr, 0)) {
@@ -38,43 +34,19 @@ void* button_monitor() {
                     tcp_common_call('d', 'r', flr);
                 }
             }
-            if (elev_get_button_signal(BUTTON_COMMAND,flr) == 1){
-                if (elevator.call[flr] != 1) {
-                    elevator.call[flr] = 1;
-                }
-            }
-        }
-        if (elev_get_stop_signal()){
-            elev_set_motor_direction(DIRN_STOP);
-            elevator.state = STOPPED;
         }
     }
     return 0;
 }
 
-void initialize(){
-    printf("Initializing... ");
-    elev_init(ET_Comedi); // ET_Comedi or ET_Simulation
-    elev_set_motor_direction(DIRN_STOP);
-    elevator_initialize(&elevator);
-    //common_initialize(common_request);
-    printf("done\n");
-}
-
 void main_test() {
-    initialize();
-
-    // backup
-    // char message[1024] = "Still alive!";
-    // struct timeval message_timer;
-    // timer_set(&message_timer, 100);
     tcp_server_init();
     pthread_t button_monitor_t;
+    pthread_t elevator_monitor_t;
     pthread_t tcp_server_test_t;
     pthread_create(&button_monitor_t,NULL,button_monitor,"Processing...");
+    pthread_create(&elevator_monitor_t,NULL,elevator_monitor,&elevator);
     pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
-    //sleep(1);
-    tcp_client_init();
     Elevator_State prev_state = elevator.state;
     int prev_floor = elevator.floor;
     int state_iterator = 1;
@@ -148,36 +120,38 @@ void main_test() {
         }
     }
     tcp_client_kill();
-    pthread_join(button_monitor_t,NULL); //Kill monitor
+    pthread_join(button_monitor_t,NULL); // Kill monitor
+    pthread_join(elevator_monitor_t,NULL);
     pthread_join(tcp_server_test_t, NULL);
     elev_set_motor_direction(DIRN_STOP);
 }
 
+void _print_help() {
+    printf("  -m\t\trun as master\n");
+    printf("  -s\t\trun as slave\n");
+}
+
 int main(int argc, char* argv[]){
     if (argc != 2) {
-        printf("  -m\t\trun as master\n");
-        printf("  -s\t\trun as slave\n");
+        _print_help();
     }
     else {
         if (argv[1][0] == '-') {
             switch (argv[1][1]) {
                 case 'm':
-                puts("AAAAAA");
                 main_test();
                 break;
                 case 's':
                 tcp_client_init();
-                button_monitor();
+                //button_monitor();
                 break;
                 default:
-                printf("  -m\t\trun as master\n");
-                printf("  -s\t\trun as slave\n");
+                _print_help();
                 break;
             }
         }
         else
-            printf("  -m\t\trun as master\n");
-            printf("  -s\t\trun as slave\n");
+            _print_help();
     }
     return 0;
 
