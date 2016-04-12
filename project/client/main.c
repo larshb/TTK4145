@@ -49,8 +49,10 @@ void main_test() {
     pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
     Elevator_State prev_state = elevator.state;
     int prev_floor = elevator.floor;
-    int state_iterator = 1;
+
+    //int state_iterator = 1;
     //debug_print_state(&state_iterator, &elevator, 1);
+
     while (!elev_get_stop_signal()) {
 
         //backup
@@ -60,7 +62,9 @@ void main_test() {
         // }
 
         if (elevator.state != prev_state) {
+
             //debug_print_state(&state_iterator, &elevator, 1);
+            
             prev_state = elevator.state;
         }
         switch (elevator.state) {
