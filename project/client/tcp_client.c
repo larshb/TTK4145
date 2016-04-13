@@ -14,7 +14,7 @@
 
 #include <assert.h>
 
-#define MASTER_IP "localhost"
+#define MASTER_IP "129.241.187.26"
 
 static int sockfd; //, n;
 static char sendline[255];
@@ -32,7 +32,11 @@ void tcp_client_init() {
  
     inet_pton(AF_INET, MASTER_IP, &(servaddr.sin_addr));
  
-    connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    int success = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    if (success < 0) {
+        perror("client connect");
+        exit(1);
+    }
 }
 
 int tcp_common_call(char direction, char action, int floor) {

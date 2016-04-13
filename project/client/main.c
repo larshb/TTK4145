@@ -18,17 +18,15 @@ static Elevator elevator;
 
 void master_main() {
     common_init();
-    tcp_server_init();
     tcp_client_init();
     pthread_t common_monitor_t;
     pthread_t elevator_monitor_t;
-    pthread_t tcp_server_test_t;
     pthread_create(&common_monitor_t,NULL,common_monitor,"Processing...");
     pthread_create(&elevator_monitor_t,NULL,elevator_monitor,&elevator);
-    pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
     Elevator_State prev_state = elevator.state;
-    elevator.role = MASTER;
+    elevator.role = SLAVE;
     elevator.rank = tcp_get_station_rank();
+    puts("-------------------");
     int prev_floor = elevator.floor;
 
     printf("My rank: %d   My role: %d\n", elevator.rank, elevator.role);
@@ -127,7 +125,6 @@ void master_main() {
     tcp_client_kill();
     pthread_join(common_monitor_t,NULL); // Kill monitor
     pthread_join(elevator_monitor_t,NULL);
-    pthread_join(tcp_server_test_t, NULL);
     elev_set_motor_direction(DIRN_STOP);
     common_complete();
 }
@@ -145,13 +142,14 @@ int main(int argc, char* argv[]){
         if (argv[1][0] == '-') {
             switch (argv[1][1]) {
                 case 'm':
+                tcp_server_init();
+                pthread_t tcp_server_test_t;
+                pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
                 master_main();
+                pthread_join(tcp_server_test_t, NULL);
                 break;
                 case 's':
-                tcp_client_init();
-                int a = tcp_get_station_rank();
-                printf("I have rank: %d\n", a);
-                //common_monitor();
+                master_main();
                 break;
                 default:
                 _print_help();
