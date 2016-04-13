@@ -90,6 +90,10 @@ void *elevator_connection_handler(void *socket_desc)
 
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
+
+
+
+
     int read_size;
     //char *message
     char client_message[255];
@@ -98,13 +102,17 @@ void *elevator_connection_handler(void *socket_desc)
     int elevator_id = add_remote_elevator(sock);
     remote_elevator[elevator_id].rank = sock;
 
+    //get ip string
+    remote_elevator[elevator_id].ip = inet_ntoa(client.sin_addr);
+
     //DEBUG PRINT
     for (int i = 0; i < MAX_ELEVATORS; i++) {
         pthread_mutex_lock(&elevator_lock);
-        printf("remote_elevator[%2d] = %3d\n", i,
+        printf("remote_elevator[%2d] = %3d\t%s\n", i,
                                                 remote_elevator[i].active
                                                 ? remote_elevator[i].rank
-                                                : -1);
+                                                : -1,
+                                                remote_elevator[i].ip);
         pthread_mutex_unlock(&elevator_lock);
     }
 
@@ -149,6 +157,7 @@ void *elevator_connection_handler(void *socket_desc)
             else {
                 ownership = manager_assign(direction, floor);
                 //char ownership_str[3];
+                common_set_request(floor, direction, ownership);
                 sprintf(client_message, "%03d", ownership);
                 //bzero(client_message);
                 //for (int i = 0; i < 3; i++)

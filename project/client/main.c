@@ -16,9 +16,9 @@
 
 static Elevator elevator;
 
-void master_main() {
+void master_main(const char* master_ip) {
     common_init();
-    tcp_client_init();
+    tcp_client_init(master_ip);
     pthread_t common_monitor_t;
     pthread_t elevator_monitor_t;
     pthread_create(&common_monitor_t,NULL,common_monitor,"Processing...");
@@ -133,10 +133,11 @@ void master_main() {
 void _print_help() {
     printf("  -m\t\trun as master\n");
     printf("  -s\t\trun as slave\n");
+    printf("        -[MASTER IP]\n");
 }
 
 int main(int argc, char* argv[]){
-    if (argc != 2) {
+    if (argc < 3) {
         _print_help();
     }
     else {
@@ -146,11 +147,11 @@ int main(int argc, char* argv[]){
                 tcp_server_init();
                 pthread_t tcp_server_test_t;
                 pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
-                master_main();
+                master_main(argv[2]);
                 pthread_join(tcp_server_test_t, NULL);
                 break;
                 case 's':
-                master_main();
+                master_main(argv[2]);
                 break;
                 default:
                 _print_help();

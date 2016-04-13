@@ -31,6 +31,7 @@ typedef struct {
     Elevator_Role           role;
     int                     rank;
     int                     active;
+    char*                   ip;
 } Elevator;
 
 void* elevator_monitor(void* elevator);
