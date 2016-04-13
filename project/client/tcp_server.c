@@ -161,6 +161,14 @@ void *elevator_connection_handler(void *socket_desc)
                 case 'r': // rank
                 sprintf(client_message, "%03d", sock);
                 break;
+
+                case 'a': // assignments (common_request)
+                bzero(client_message, 255);
+                for (int flr = 0; flr < N_FLOORS; flr++) { // limits N_FLOORS to 127 because of message size 255
+                    client_message[flr*2] = '0' + common_get_request(flr, 0);
+                    client_message[flr*2 + 1] = '0' + common_get_request(flr, 1);
+                }
+                break;
             }
             break;
 

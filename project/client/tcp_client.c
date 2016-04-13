@@ -1,6 +1,5 @@
 #include "tcp_client.h" 
 #include "common.h"
-#include "elev.h"
 
 #include <arpa/inet.h>      // inet_pton
 #include <sys/types.h>
@@ -87,6 +86,17 @@ void tcp_update_status(int state, int direction, int floor) {
         instruction[i + 4] = floor_str[i];
     }
     tcp_client_send(instruction);
+}
+
+void tcp_get_common_requests(int new_common_request[N_FLOORS][2]) {
+    char instruction[255];
+    bzero(instruction, 255);
+    sprintf(instruction, "pa");
+    const char* new_common_request_str = tcp_client_send(instruction);
+    for (int flr = 0; flr < N_FLOORS; flr++) {
+        new_common_request[flr][0] = new_common_request_str[flr * 2] - '0';
+        new_common_request[flr][1] = new_common_request_str[flr*2 + 1] - '0';
+    }
 }
 
 const char* tcp_client_send(char instruction[255]) {

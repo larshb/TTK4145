@@ -30,6 +30,7 @@ void master_main() {
     int prev_floor = elevator.floor;
 
     printf("My rank: %d   My role: %d\n", elevator.rank, elevator.role);
+    
     //int state_iterator = 1;
     //debug_print_state(&state_iterator, &elevator, 1);
 
