@@ -24,10 +24,8 @@ int common_get_request(int floor, int direction) {
 
 void common_set_request(int floor, int direction, int ownership) {
     pthread_mutex_lock(&common_request_lock);
-    puts("locked in set");
     common_request[floor][direction] = ownership;
     pthread_mutex_unlock(&common_request_lock);
-    puts("unlocked in set");
 }
 
 void common_set_lamps() {
@@ -40,7 +38,7 @@ void common_set_lamps() {
 int common_order_available(Elevator* e) {
     for (int flr = 0; flr < N_FLOORS; flr++) {
         for (int btn = 0; btn < 2; btn++) {
-            if (common_get_request(flr, btn) == 2)
+            if (common_get_request(flr, btn) == e->rank)
                 return 1;
         }
         if (e->call[flr])
@@ -56,13 +54,13 @@ void* common_monitor() {
             if (elev_get_button_signal(BUTTON_CALL_UP,flr) == 1 && flr != N_FLOORS -1){
                 if (!common_get_request(flr, 0)) {
                     common_set_request(flr, 0, 1);
-                    tcp_common_call('u', 'r', flr);
+                    common_set_request(flr, 0, tcp_common_call('u', 'r', flr));
                 }
             }
             if (elev_get_button_signal(BUTTON_CALL_DOWN,flr) == 1 && flr != 0){
                 if (!common_get_request(flr, 1)) {
                     common_set_request(flr, 1, 1);
-                    tcp_common_call('d', 'r', flr);
+                    common_set_request(flr, 1, tcp_common_call('d', 'r', flr));
                 }
             }
         }

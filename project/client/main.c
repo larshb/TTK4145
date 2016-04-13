@@ -53,7 +53,7 @@ void master_main() {
         switch (elevator.state) {
             case IDLE:
             //current floor call or request in same direction
-            if (common_get_request(elevator.floor, elevator.direction) == 2 || elevator.call[elevator.floor]) {
+            if (common_get_request(elevator.floor, elevator.direction) == elevator.rank || elevator.call[elevator.floor]) {
                 elevator_door_open(&elevator);
                 elevator.state = DOORS_OPEN;
                 elevator.call[elevator.floor] = 0;
@@ -72,11 +72,13 @@ void master_main() {
             case MOVING:
             if (elevator.floor != prev_floor && elevator_should_stop(&elevator)) {
                 elevator_stop();
-                if (common_get_request(elevator.floor, elevator.direction) == 2 || elevator.call[elevator.floor]) {
+                if (common_get_request(elevator.floor, elevator.direction) == elevator.rank || elevator.call[elevator.floor]) {
                     elevator_door_open(&elevator);
                     elevator.state = DOORS_OPEN;
                     elevator.call[elevator.floor] = 0;
                     common_set_request(elevator.floor, elevator.direction, 0);
+                    if (elevator.floor == 0 || elevator.floor == N_FLOORS - 1)
+                        common_set_request(elevator.floor, !elevator.direction, 0);
                     char button = elevator.direction ? 'd' : 'u';
                     tcp_common_call(button, 'c', elevator.floor);
                 }
@@ -88,7 +90,7 @@ void master_main() {
             if (elevator_door_closed(&elevator)) {
 
                 // Open door on request
-                if (elevator.call[elevator.floor] || common_get_request(elevator.floor, elevator.direction) == 2) {
+                if (elevator.call[elevator.floor] || common_get_request(elevator.floor, elevator.direction) == elevator.rank) {
                     elevator.call[elevator.floor] = 0;
                     common_set_request(elevator.floor, elevator.direction, 0);
                     char button = elevator.direction ? 'd' : 'u';
@@ -107,6 +109,7 @@ void master_main() {
                     // Continue opposite direction
                     elevator.direction = !elevator.direction;
                     if (elevator_should_advance(&elevator)) {
+                        prev_floor = elevator.floor;
                         elevator_move(&elevator);
                         elevator.state = MOVING;
                     }

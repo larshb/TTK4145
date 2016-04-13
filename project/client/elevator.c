@@ -1,5 +1,6 @@
 #include "elevator.h"
 #include "common.h" 
+#include "tcp_client.h"
 
 void* elevator_monitor(void* elevator) {
     Elevator *e = elevator;
@@ -54,6 +55,7 @@ void elevator_initialize(Elevator* e) {
     e->state = IDLE;
     e->floor = elev_get_floor_sensor_signal();
     e->direction = UP;
+    e->rank = tcp_get_station_rank();
 }
 
 void elevator_set_lamps(Elevator* e) {
@@ -92,18 +94,18 @@ int elevator_door_closed(Elevator* e) {
 }
 
 int elevator_should_stop(Elevator* e) {
-    if ((e->floor == 0 && e->direction == DOWN) || (e->floor == N_FLOORS - 1 && e->direction == UP) || e->call[e->floor] || common_get_request(e->floor, e->direction) == 2)
+    if ((e->floor == 0 && e->direction == DOWN) || (e->floor == N_FLOORS - 1 && e->direction == UP) || e->call[e->floor] || common_get_request(e->floor, e->direction) == e->rank)
         return 1;
     else { //no further opposite direction requests
         if (e->direction == UP) {
             for (int flr = e->floor + 1; flr < N_FLOORS; flr++) {
-                if (common_get_request(flr, UP) == 2 || common_get_request(flr, DOWN) == 2 || e->call[flr])
+                if (common_get_request(flr, UP) == e->rank || common_get_request(flr, DOWN) == e->rank || e->call[flr])
                     return 0;
             }
         }
         else {
             for (int flr = 0; flr < e->floor; flr++) {
-                if (common_get_request(flr, DOWN) == 2 || common_get_request(flr, UP) == 2 || e->call[flr])
+                if (common_get_request(flr, DOWN) == e->rank || common_get_request(flr, UP) == e->rank || e->call[flr])
                     return 0;
             }
         }
@@ -115,14 +117,14 @@ int elevator_should_stop(Elevator* e) {
 int elevator_should_advance(Elevator* e) {
     if (e->direction == UP && e->floor < N_FLOORS - 1) {
         for (int flr = e->floor + 1; flr < N_FLOORS; flr++){
-            if(e->call[flr] || common_get_request(flr, UP) == 2 || common_get_request(flr, DOWN) == 2){
+            if(e->call[flr] || common_get_request(flr, UP) == e->rank || common_get_request(flr, DOWN) == e->rank){
                 return 1;
             }
         }
     }
     else if (e->direction == DOWN && e->floor > 0) {
         for (int flr = 0; flr < e->floor; flr++){
-            if(e->call[flr] || common_get_request(flr, DOWN) == 2 || common_get_request(flr, UP) == 2){
+            if(e->call[flr] || common_get_request(flr, DOWN) == e->rank || common_get_request(flr, UP) == e->rank){
                 return 1;
             }
         }

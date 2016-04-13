@@ -35,14 +35,15 @@ void tcp_client_init() {
     connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
 }
 
-void tcp_common_call(char button, char action, int floor) {
+int tcp_common_call(char direction, char action, int floor) {
     char instruction[255];
     bzero(instruction, 255);
     instruction[0] = 'b';
     instruction[1] = action;
-    instruction[2] = button;
+    instruction[2] = direction;
     instruction[3] = floor + '0';
-    tcp_client_send(instruction);
+    const char* rank_str = tcp_client_send(instruction);
+    return atoi(rank_str);
 }
 
 int tcp_get_station_rank() { // role (master/slave), rank

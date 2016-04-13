@@ -144,11 +144,16 @@ void *elevator_connection_handler(void *socket_desc)
         	case 'b': // button assignment
         	direction = client_message[2] == 'd';
         	floor = client_message[3] - '0';
-        	ownership = client_message[1] == 'c';
-            if (ownership == 0)
-        	    common_set_request(floor, direction, ownership);
-            else
-                //manager_assign(direction, floor);
+            if (client_message[1] == 'c')
+        	    common_set_request(floor, direction, 0);
+            else {
+                ownership = manager_assign(direction, floor);
+                //char ownership_str[3];
+                sprintf(client_message, "%03d", ownership);
+                //bzero(client_message);
+                //for (int i = 0; i < 3; i++)
+
+            }
         	break;
 
             case 'p': // polling
