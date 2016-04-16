@@ -131,37 +131,45 @@ void master_main(const char* master_ip) {
 }
 
 void _print_help() {
-    printf("  -m\t\trun as master\n");
-    printf("  -s\t\trun as slave\n");
-    printf("        -[MASTER IP]\n");
+    printf("  -m            \trun as master\n");
+    printf("  -s [master IP]\trun as slave\n");
 }
 
 int main(int argc, char* argv[]){
-    if (argc < 3) {
+    pthread_t tcp_server_test_t;
+    if (argc < 2) {
         _print_help();
+        return 0;
     }
-    else {
-        if (argv[1][0] == '-') {
-            switch (argv[1][1]) {
-                case 'm':
+    else if (argv[1][0] == '-') {
+        switch (argv[1][1]) {
+            case 'm':
                 tcp_server_init();
-                pthread_t tcp_server_test_t;
+                pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
+                master_main("localhost");
+                pthread_join(tcp_server_test_t, NULL);
+                return 0;
+            case 's':
+                if (argc < 3) {
+                    _print_help();
+                    return 0;
+                }
+                tcp_server_init();
                 pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
                 master_main(argv[2]);
                 pthread_join(tcp_server_test_t, NULL);
-                break;
-                case 's':
-                master_main(argv[2]);
-                break;
+                puts("halla");
+                return 0;
+
+            //debug
+            case 'w': //local slave (without server)
+                master_main("localhost");
+                return 0;
                 default:
-                _print_help();
                 break;
-            }
         }
-        else
-            _print_help();
     }
-    while(1);
+    _print_help();
     return 0;
 
 

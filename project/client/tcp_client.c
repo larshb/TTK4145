@@ -14,7 +14,7 @@
 #include <assert.h>
 
 static int sockfd; //, n;
-static char sendline[255];
+//static char sendline[255];
 static char recvline[255];
 static struct sockaddr_in servaddr;
 
@@ -56,6 +56,14 @@ int tcp_get_station_rank() { // role (master/slave), rank
     char role_char[4];
     strncpy(role_char, recieved, 3);
     return atoi(role_char);
+}
+
+const char* tcp_get_next_master_ip() {
+    char instruction[255]; 
+    bzero(instruction, 255);
+    instruction[0] = 'p';
+    instruction[1] = 'n';
+    return tcp_client_send(instruction);
 }
 
 void tcp_update_status(int state, int direction, int floor) {
@@ -101,10 +109,16 @@ const char* tcp_client_send(char instruction[255]) {
     pthread_mutex_lock(&lock);
     bzero(recvline, 255);
     write(sockfd, instruction, 255);
-    recv(sockfd, recvline, 255 , 0);
+    int success = recv(sockfd, recvline, 255 , 0);
     if (strcmp(instruction, recvline) != 0)
         puts("non-echo");
     puts("done");
+
+    //debug
+    if (!success) {
+        tcp_client_init(common_get_next_master_ip());
+    }
+
     pthread_mutex_unlock(&lock);
     return recvline;
 }

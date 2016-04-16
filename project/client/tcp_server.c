@@ -16,6 +16,9 @@ static struct sockaddr_in server , client;
 
 pthread_mutex_t elevator_lock;
 
+//move?
+static int remote_elevator_count = 0;
+
 void tcp_server_init()
 {
     //Create socket
@@ -70,6 +73,10 @@ void *tcp_server_test() {
         
         pthread_detach(sniffer_thread);
         printf("Handler assigned: %d\n\n", client_sock);
+        remote_elevator_count++;
+
+        //debug
+        printf("-----------Elevator count: %i\n", remote_elevator_count);
 
     }
      
@@ -147,7 +154,9 @@ void *elevator_connection_handler(void *socket_desc)
             break;
         }*/
 
+        //debug
         printf("Recieved C/S: %s\n", client_message);
+
         switch (client_message[0]) {
         	case 'b': // button assignment
         	direction = client_message[2] == 'd';
@@ -170,13 +179,17 @@ void *elevator_connection_handler(void *socket_desc)
                 case 'r': // rank
                 sprintf(client_message, "%03d", sock);
                 break;
-
                 case 'a': // assignments (common_request)
                 bzero(client_message, 255);
                 for (int flr = 0; flr < N_FLOORS; flr++) { // limits N_FLOORS to 127 because of message size 255
                     client_message[flr*2] = '0' + common_get_request(flr, 0);
                     client_message[flr*2 + 1] = '0' + common_get_request(flr, 1);
                 }
+                break;
+                case 'n':
+                bzero(client_message, 255);
+                int next_master_remote_elevator_id = remote_elevator_count > 1;
+                strncpy(client_message, remote_elevator[next_master_remote_elevator_id].ip, 16);
                 break;
             }
             break;
@@ -206,13 +219,21 @@ void *elevator_connection_handler(void *socket_desc)
             }
             break;
         }
+
+        //debug
         printf("Sending  S/C: %s\n", client_message);
+        
         write(sock , client_message , strlen(client_message));
     }
      
     if(read_size == 0)
     {
         puts("Client disconnected");
+        remote_elevator_count--;
+
+        //debug
+        printf("-----------Elevator count: %i\n", remote_elevator_count);
+
         fflush(stdout);
     }
     else if(read_size == -1)
@@ -229,8 +250,6 @@ void *elevator_connection_handler(void *socket_desc)
     return 0;
 }
 
-
-//DEBUG/FØRSTEUTKAST////////////////////////
 int add_remote_elevator(int socket){
     int elevator_id = -1;
     pthread_mutex_lock(&elevator_lock);
@@ -257,4 +276,3 @@ void delete_remote_elevator(int elevator_id){
     remote_elevator[i].active = 0;
     pthread_mutex_unlock(&elevator_lock);
 }
-/////////////////////////////////////////////

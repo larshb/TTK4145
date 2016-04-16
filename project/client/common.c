@@ -8,6 +8,7 @@
 #include "debug.h"
 
 static int common_request[N_FLOORS][2]={{0}}; // 0 = not requested, 1 = requested, 2 assigned to this elevator
+static const char* next_master_ip;
 
 pthread_mutex_t common_request_lock;
 
@@ -32,6 +33,10 @@ void common_set_request(int floor, int direction, int ownership) {
     pthread_mutex_unlock(&common_request_lock);
 }
 
+const char* common_get_next_master_ip() {
+    return next_master_ip;
+}
+
 void common_set_lamps() {
     for (int flr = 0; flr < N_FLOORS - 1; flr++) {
         elev_set_button_lamp(BUTTON_CALL_UP, flr, common_get_request(flr, 0) > 1);
@@ -53,14 +58,19 @@ int common_order_available(Elevator* e) {
 
 void* common_monitor() {
     int new_common_request[N_FLOORS][2];
-    struct timeval tcp_get_common_request_timer;
-    timer_set(&tcp_get_common_request_timer, 100); // maybe change?
+    struct timeval polling_timer;
+    timer_set(&polling_timer, 100); // maybe change?
     while (!elev_get_obstruction_signal()) {
         common_set_lamps();
-        if (timer_timeout(&tcp_get_common_request_timer)) {
-            timer_set(&tcp_get_common_request_timer, 1000);
+        if (timer_timeout(&polling_timer)) {
+            timer_set(&polling_timer, 1000);
             //tcp_get_common_requests(new_common_request);
             tcp_get_common_requests(new_common_request);
+            next_master_ip = tcp_get_next_master_ip();
+
+            //debug
+            printf("------Next master IP: %s\n", next_master_ip);
+
             pthread_mutex_lock(&common_request_lock);
             for (int flr = N_FLOORS - 1; flr > -1; flr--) {
                 common_request[flr][0] = new_common_request[flr][0];
