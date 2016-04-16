@@ -12,91 +12,58 @@ static Elevator remote_elevator[MAX_ELEVATORS];
 int manager_assign(int button_dir, int floor) {
 	int chosen_elev_rank = remote_elevator[0].rank;
 	Elevator* curr_e;
+
+
+	//Check idle state
+	int last_floor = button_dir == 0 ? 0 : N_FLOORS;
+	int flr;
+
 	for (int elev_id = 0; elev_id < MAX_ELEVATORS; elev_id++) {
 		curr_e = &remote_elevator[elev_id];
+		flr = abs(curr_e->floor - floor);
 		if (!curr_e->active)
 			break;
-		if (curr_e->state == IDLE)
+		if(curr_elev->floor == floor && (curr_elev->state == IDLE || curr_elev->state == DOORS_OPEN)){
+			return curr_e->rank;			
+		}
+		else if (curr_e->state == IDLE && flr < last_floor){
 			chosen_elev_rank = curr_e->rank;
+			last_floor = flr;
+			check = 1;
+		}
 	}
-	return chosen_elev_rank;
+	if(check == 1){
+		return chosen_elev_rank;
+	}
 
 
+	//Check before same direction
+	last_floor = button_dir == 0 ? 0 : N_FLOORS;
 
 
-
-
-
-
-
-
-
-
-
-
-
-	/*
-	int chosen_elev_rank = -1;
-	int chosen_floor_idle = -1;
-	int chosen_floor_same_dir = -1;
-	Elevator* curr_elev;
 	for (int elev_id = 0; elev_id < MAX_ELEVATORS; elev_id++) {
-		curr_elev = &remote_elevator[elev_id];
-		if (remote_elevator[elev_id].active) {
-			// in same floor and idle or doors_open
-			if (curr_elev->floor == floor && (curr_elev->state == IDLE || curr_elev->state == DOORS_OPEN)) {
-				chosen_elev_rank = curr_elev->rank;
-				common_set_request(floor, button_dir, chosen_elev_rank);
-				return chosen_elev_rank;
-			}
-			// If the elevator moves up and button direction up and assignment floor is above elevator? 
-			else if (
-				        (curr_elev->direction == UP && button_dir == UP && curr_elev->floor < floor)
-					 || (curr_elev->direction == DOWN && button_dir == DOWN && curr_elev->floor > floor)
-				) {
-				if (chosen_floor_same_dir < 0 || abs(curr_elev->floor-floor) < abs(chosen_floor_same_dir-floor)) {
-					if 
-					chosen_floor_same_dir = curr_elev->floor;
-					chosen_elev_rank = curr_elev->rank;
-				}
-			}
-			else if (chosen_floor_same_dir < 0) {
-				if ()
-			}
-		}
-		else {
+		curr_e = &remote_elevator[elev_id];
+		flr = abs(curr_e->floor - floor);
+		if (!curr_e->active)
 			break;
+		if(button_dir == 0 && curr_e->floor < floor && curr_e->direction == 0 && flr < last_floor){ //Up
+			last_floor = flr;
+			chosen_elev_rank = curr_e->rank;
+			check = 1;			
 		}
-	}*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// Check if elevator idle or doors_open in same floor
-
-
-	// Find nearest elevator above if down pressed
-	/*
-	int it_dir = button_dir ? 1 : -1;
-	int flr;
-	for (flr = floor + it_dir; floor >= 0 && floor < N_FLOORS; i += it_dir) {
-		for (int elev_id = 0; elev_id < MAX_ELEVATORS; elev_id++) {
-			if (!remote_elevator[elev_id].active)
-				break;
-			//
+		else if(button_dir == 1 && curr_e->floor > floor && curr_e->direction == 1 && flr < last_floor){ //Up
+			last_floor = flr;
+			chosen_elev_rank = curr_e->rank;
+			check = 1;			
 		}
-	}*/
+	}
+	if(check == 1){
+		return chosen_elev_rank;
+	}
+
+
+
+
+
 	assert(chosen_elev_rank != -1);
 }
