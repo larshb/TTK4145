@@ -3,6 +3,11 @@
 #include "elev.h"
 #include "elevator.h"
 
-void common_initialize(int reqs[N_FLOORS][2]);
-void common_set_lamps(int reqs[N_FLOORS][2]);
-int common_order_available(Elevator* e, int reqs[N_FLOORS][2]);
+void common_init();
+void common_complete();
+int common_get_request(int floor, int direction);
+void common_set_request(int floor, int direction, int ownership);
+const char* common_get_next_master_ip();
+void common_set_lamps();
+int common_order_available(Elevator* e);
+void* common_monitor();

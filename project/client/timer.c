@@ -1,5 +1,8 @@
 #include "timer.h"
 
+static struct timeval _current_time; 
+static struct timeval _temp_time;
+
 void timer_set(struct timeval* timeout, int msec) {
 	_temp_time.tv_sec = msec / 1000;
 	_temp_time.tv_usec = (msec % 1000) * 1000;

@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "common.h"
 
 #include <stdio.h> // printf
 
@@ -20,13 +21,13 @@
     elev_set_motor_direction(DIRN_STOP);
 }*/
 
-void debug_print_state(int* iteration, Elevator* e, int reqs[N_FLOORS][2]) {
+void debug_print_state(int* iteration, Elevator* e, int ownership) {
     printf("\n[F]loor [U]p [D]own [C]ommand\n");
     printf("+---+-------+\n| F | U D C |\n+---+-------+\n");
     for (int flr = N_FLOORS - 1; flr > -1; flr--) {
         printf("| %d |", flr);
         for (int btn = 0; btn < 2; btn++) {
-            if (reqs[flr][btn] == 1)
+            if (common_get_request(flr, btn) == ownership)
                 printf(" #");
             else
                 printf("  ");

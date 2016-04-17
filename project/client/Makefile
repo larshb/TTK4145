@@ -8,7 +8,7 @@ CFLAGS = -std=gnu11 -g -Wall -Wextra
 LDFLAGS = -lcomedi -lm -pthread
 
 # list of sources
-ELEVSRC = elev.c io.c main.c elevator.c common.c debug.c backup.c
+ELEVSRC = common.c debug.c elev.c elevator.c io.c main.c tcp_client.c tcp_server.c timer.c
 
 # program executable file name.
 TARGET = elevator
