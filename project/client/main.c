@@ -143,6 +143,7 @@ void master_main(const char* master_ip) {
 void _print_help() {
     printf("  -m            \trun as master\n");
     printf("  -s [master IP]\trun as slave\n");
+    printf("  -k            \tkill elevator (stop motor)\n");
 }
 
 int main(int argc, char* argv[]){
