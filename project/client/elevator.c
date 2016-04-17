@@ -3,7 +3,7 @@
 #include "common.h"         // should_stop, should_advance
 #include "tcp_client.h"     // Polling rank
 
-#include "filebackup.h"     //readLog
+#include "filebackup.h"     // readLog
 
 
 void* elevator_monitor(void* elevator) {
@@ -13,7 +13,7 @@ void* elevator_monitor(void* elevator) {
     
     //DEBUG
     struct timeval log_timer;
-    timer_set(&log_timer, 10);
+    timer_set(&log_timer, 100);
 
 
     int floor_result;
@@ -36,7 +36,7 @@ void* elevator_monitor(void* elevator) {
         //Debug write to log
         if (timer_timeout(&log_timer)) {
             writeTolog(elevator);
-            timer_set(&log_timer, 10);
+            timer_set(&log_timer, 100);
         }
     }
     return 0;

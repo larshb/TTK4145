@@ -6,7 +6,7 @@
 
 int new_master();
 
-void tcp_client_init(const char* master_ip);
+int tcp_client_init(const char* master_ip);
 int tcp_common_call(char button, char action, int floor); /* action: 'c' = completed, 'r' = requested */
 int tcp_get_station_rank();
 const char* tcp_get_next_master_ip();

@@ -1,11 +1,10 @@
 #include "filebackup.h"
-#include "common.h"			//access to common_request[N_FLOORS][2]={{0}}; and get, set
-#include "elev.h"			//N_FLOORS
-#include "elevator.h"		//access to call[N_FLOORS];
 
-#include <stdio.h>			//file I/O
-#include <strings.h>		//bzero()
-#include <assert.h>
+#include "elevator.h"		// N_FLOORS, Elevator
+
+#include <stdio.h>			// fopen, fscanf, fclose
+#include <strings.h>		// bzero
+#include <assert.h>			// assert
 
 
 void writeTolog(Elevator* e) {
@@ -29,6 +28,7 @@ void readLog(Elevator* e){
 	char line[255];
 	bzero(line,255);
 	fp = fopen("log/log.txt", "r");
+	assert(fp != NULL);
 	fscanf(fp,"%s",line);
 	assert(line[N_FLOORS] == 'c'); //Debug
 	//if(line[N_FLOORS] == 'c'){ //check if file is corrupt

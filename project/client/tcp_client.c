@@ -10,6 +10,9 @@
 #include <unistd.h>         // write, close
 #include <stdio.h>          // sprintf, perror
 
+#include <fcntl.h>          // fcntl
+#include <errno.h>          // errno, EINPROGRESS
+
 static int sockfd;          // Socket file descriptor
 static char recvline[255];
 static struct sockaddr_in servaddr;
@@ -27,7 +30,7 @@ int new_master() {
 
 pthread_mutex_t lock;
 
-void tcp_client_init(const char* master_ip) {
+int tcp_client_init(const char* master_ip) {
     printf("Client connecting to: \"%s\"\n", master_ip);
 
     sockfd=socket(AF_INET, SOCK_STREAM, 0);
@@ -41,13 +44,40 @@ void tcp_client_init(const char* master_ip) {
     
     char debugstr[255];
     inet_ntop(AF_INET, &(servaddr.sin_addr), debugstr, 255);
+
+    // Set Client timeout
+    struct timeval tv;
+    tv.tv_sec = 0;  /* 30 Secs Timeout */
+    tv.tv_usec = 200000;  // Not init'ing this can cause strange errors
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
+    //long arg = fcntl(sockfd, F_GETFL, NULL);
+    //arg |= O_NONBLOCK;
+    //fcntl(sockfd, F_SETFL, arg);
+
     //printf("master_ip = %s\n", master_ip);
     //printf("Socket IP = %s\n", debugstr);
     int success = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
+    printf("success=%i\n", success);
+    puts("done connecting");
     if (success < 0) {
+        //printf("errno == EINPROGRESS = %i\n", (int)(errno == EINPROGRESS));
+        if (errno == EINPROGRESS) {
+            //arg = fcntl(sockfd, F_GETFL, NULL);
+            //arg &= (~O_NONBLOCK);
+            //fcntl(sockfd, F_SETFL, arg);
+        }
         perror("client connect");
-        exit(1);
+        return success;
+        //puts("hei");
+        //exit(1);
     }
+    //arg = fcntl(sockfd, F_GETFL, NULL);
+    //arg &= (~O_NONBLOCK);
+    //fcntl(sockfd, F_SETFL, arg);
+    char _throw_msg[255];
+    recv(sockfd, _throw_msg, 255, 0);
+    return 0;
 }
 
 int tcp_common_call(char direction, char action, int floor) {
@@ -126,7 +156,7 @@ const char* tcp_client_send(char instruction[255]) {
     pthread_mutex_lock(&lock);
     bzero(recvline, 255);
     write(sockfd, instruction, 255);
-    int success = recv(sockfd, recvline, 255 , 0);
+    int success = recv(sockfd, recvline, 255, 0); //,MSG_DONTWAIT);
 
     //debug
     //if (strcmp(instruction, recvline) != 0)
@@ -134,9 +164,10 @@ const char* tcp_client_send(char instruction[255]) {
     //puts("done");
 
     //debug
-    if (!success) {
+    if (success < 0) {
         new_master_flag = 1;
         //tcp_client_init(common_get_next_master_ip());
+        //shutdown(sockfd, SHUT_WR);
     }
     //char hei[255];
     //strcpy(hei, recvline);

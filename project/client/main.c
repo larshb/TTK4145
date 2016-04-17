@@ -18,7 +18,10 @@ static Elevator elevator;
 
 void master_main(char next_master_ip[]) {
     common_init();
-    tcp_client_init(next_master_ip);
+    int success = tcp_client_init(next_master_ip);
+    if (success < 0) {
+        tcp_client_init("127.0.0.1");
+    }
     pthread_t common_monitor_t;
     pthread_t elevator_monitor_t;
     pthread_create(&common_monitor_t,NULL,common_monitor,"Processing...");
@@ -44,7 +47,7 @@ void master_main(char next_master_ip[]) {
         //    printf("%i\t%i\n", common_get_request(flr, 0), common_get_request(flr, 1));
         //}
 
-        //backup
+        // Next master
         if (timer_timeout(&message_timer)) {
             const char* new_next_master_ip;
             new_next_master_ip = tcp_get_next_master_ip();
@@ -59,7 +62,10 @@ void master_main(char next_master_ip[]) {
         //printf("common_get_next_master_ip() = \"%s\"\n", common_get_next_master_ip());
         if (new_master()) {
             printf("Her skjær d sæ--");
-            tcp_client_init(next_master_ip);
+            int success = tcp_client_init(next_master_ip);
+            if (success < 0) {
+                tcp_client_init("127.0.0.1");
+            }
             //while(1);
             elevator.rank = tcp_get_station_rank();
         }

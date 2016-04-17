@@ -59,7 +59,7 @@ void tcp_server_init()
     if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)
     {
         perror("bind failed. Error");
-        return;
+        exit(1);
     }
     puts("bind done");
      
