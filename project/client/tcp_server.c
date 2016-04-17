@@ -107,11 +107,12 @@ void *elevator_connection_handler(void *socket_desc)
     char client_message[255];
     
     // add elevator
-    int elevator_id = add_remote_elevator(sock);
-    remote_elevator[elevator_id].rank = sock;
+    int elevator_id = add_remote_elevator(sock, inet_ntoa(client.sin_addr));
+
+    //add sock to rank here? ----------------------------------------------------
 
     //get ip string
-    remote_elevator[elevator_id].ip = inet_ntoa(client.sin_addr);
+    //remote_elevator[elevator_id].ip = inet_ntoa(client.sin_addr);
 
     //DEBUG PRINT
     for (int i = 0; i < MAX_ELEVATORS; i++) {
@@ -255,13 +256,24 @@ void *elevator_connection_handler(void *socket_desc)
     return 0;
 }
 
-int add_remote_elevator(int socket){
+int add_remote_elevator(int socket, const char* ip) {
     int elevator_id = -1;
     pthread_mutex_lock(&elevator_lock);
     for (int i = 0; i < MAX_ELEVATORS; i++) {
+
+        // allready added?
+        /*if (remote_elevator[i].active) {
+            printf("-------------------------------------strcmp(\"%s\", \"%s\")=?\n",remote_elevator[i].ip, ip);//, strcmp(remote_elevator[i].ip, ip));
+            if (strcmp(remote_elevator[i].ip, ip) == 0) { 
+                remote_elevator[i].rank = socket;
+                elevator_id = i;
+                break;
+            }
+        }*/
         if (!remote_elevator[i].active) {
             remote_elevator[i].active = 1;
             remote_elevator[i].rank = socket;
+            remote_elevator[i].ip = ip;
             elevator_id = i;
             break;
         }

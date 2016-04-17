@@ -14,7 +14,7 @@ static Elevator remote_elevator[MAX_ELEVATORS];
 
 
 int manager_assign(int button_dir, int floor) {
-	int chosen_elev_rank = remote_elevator[1].rank;
+	int chosen_elev_rank = remote_elevator[0].rank;
 	Elevator* curr_e;
 
 
@@ -38,9 +38,9 @@ int manager_assign(int button_dir, int floor) {
 			order_assigned = 1;
 		}
 	}
-	//if(order_assigned == 1){
+	if(order_assigned == 1){
 		return chosen_elev_rank;
-	//}
+	}
 
 	//Check before same direction
 	last_floor = button_dir == 0 ? 0 : N_FLOORS;
@@ -115,5 +115,5 @@ int manager_assign(int button_dir, int floor) {
 			order_assigned = 1;			
 		}
 	}
-		return chosen_elev_rank;
+	return chosen_elev_rank;
 }
