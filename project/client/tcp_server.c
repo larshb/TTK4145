@@ -20,6 +20,20 @@ pthread_mutex_t elevator_lock;
 //move?
 static int remote_elevator_count = 0;
 
+//debug
+void d_print_remote_elevators() {
+    pthread_mutex_lock(&elevator_lock);
+    printf("Remote elevator count: %i\n", remote_elevator_count);
+    for (int i = 0; i < MAX_ELEVATORS; i++) {
+        printf("remote_elevator[%2d] = ", i);
+        if (remote_elevator[i].active) {
+            printf("\t%3i\t%s", remote_elevator[i].rank, remote_elevator[i].ip);
+        }
+        printf("\n");
+    }
+    pthread_mutex_unlock(&elevator_lock);
+}
+
 void tcp_server_init()
 {
     //Create socket
@@ -75,10 +89,6 @@ void *tcp_server_test() {
         pthread_detach(sniffer_thread);
         printf("Handler assigned: %d\n\n", client_sock);
         remote_elevator_count++;
-
-        //debug
-        printf("-----------Elevator count: %i\n", remote_elevator_count);
-
     }
      
     if (client_sock < 0) {
@@ -89,17 +99,10 @@ void *tcp_server_test() {
 }
  
  
-/*
- * This will handle connection for each client
- * */
-void *elevator_connection_handler(void *socket_desc)
-{
-
-
+// This will handle connection for each client
+void *elevator_connection_handler(void *socket_desc) {
     //Get the socket descriptor
     int sock = *(int*)socket_desc;
-
-
 
 
     int read_size;
@@ -115,15 +118,7 @@ void *elevator_connection_handler(void *socket_desc)
     //remote_elevator[elevator_id].ip = inet_ntoa(client.sin_addr);
 
     //DEBUG PRINT
-    for (int i = 0; i < MAX_ELEVATORS; i++) {
-        pthread_mutex_lock(&elevator_lock);
-        printf("remote_elevator[%2d] = ", i);
-        if (remote_elevator[i].active) {
-            printf("\t%3i\t%s", remote_elevator[i].rank, remote_elevator[i].ip);
-        }
-        printf("\n");
-        pthread_mutex_unlock(&elevator_lock);
-    }
+    d_print_remote_elevators();
 
     //message = "Now type something and i shall repeat what you type \n";
     //write(sock , message , strlen(message));
@@ -132,8 +127,7 @@ void *elevator_connection_handler(void *socket_desc)
     int direction;
     int floor;
     int ownership;
-    while( (read_size = recv(sock , client_message , 255 , 0)) > 0 )
-    {
+    while ((read_size = recv(sock , client_message , 255 , 0)) > 0) {
         //Send the message back to client
         //write(sock , client_message , strlen(client_message));
         /*switch (client_message[0]) {
@@ -238,7 +232,10 @@ void *elevator_connection_handler(void *socket_desc)
         remote_elevator_count--;
 
         //debug
-        printf("-----------Elevator count: %i\n", remote_elevator_count);
+        //printf("-----------Elevator count: %i\n", remote_elevator_count);
+        delete_remote_elevator(elevator_id);
+        d_print_remote_elevators();
+        free(socket_desc);
 
         fflush(stdout);
     }
@@ -248,8 +245,8 @@ void *elevator_connection_handler(void *socket_desc)
     }
          
     //Free the socket pointer
-    delete_remote_elevator(elevator_id);
-    free(socket_desc);
+    //delete_remote_elevator(elevator_id);
+    //free(socket_desc);
     
     printf("Socket freed: %d\n", sock);
     
@@ -261,15 +258,6 @@ int add_remote_elevator(int socket, const char* ip) {
     pthread_mutex_lock(&elevator_lock);
     for (int i = 0; i < MAX_ELEVATORS; i++) {
 
-        // allready added?
-        /*if (remote_elevator[i].active) {
-            printf("-------------------------------------strcmp(\"%s\", \"%s\")=?\n",remote_elevator[i].ip, ip);//, strcmp(remote_elevator[i].ip, ip));
-            if (strcmp(remote_elevator[i].ip, ip) == 0) { 
-                remote_elevator[i].rank = socket;
-                elevator_id = i;
-                break;
-            }
-        }*/
         if (!remote_elevator[i].active) {
             remote_elevator[i].active = 1;
             remote_elevator[i].rank = socket;
