@@ -2,6 +2,7 @@
 #include "common.h"
 #include "elevator.h"
 #include "manager.h"
+#include "elev.h"       // obstruction kill
 
 #include <stdio.h>
 #include <string.h>     // strlen
@@ -53,7 +54,7 @@ void tcp_server_init()
 void *tcp_server_test() {
     for (int i = 0; i < MAX_ELEVATORS; i++)
         remote_elevator[i].active = 0;
-	while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c))) {
+	while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) && !elev_get_obstruction_signal()) {
         puts("Connection accepted");
          
         pthread_t sniffer_thread;
@@ -115,11 +116,11 @@ void *elevator_connection_handler(void *socket_desc)
     //DEBUG PRINT
     for (int i = 0; i < MAX_ELEVATORS; i++) {
         pthread_mutex_lock(&elevator_lock);
-        printf("remote_elevator[%2d] = %3d\t%s\n", i,
-                                                remote_elevator[i].active
-                                                ? remote_elevator[i].rank
-                                                : -1,
-                                                remote_elevator[i].ip);
+        printf("remote_elevator[%2d] = ", i);
+        if (remote_elevator[i].active) {
+            printf("\t%3i\t%s", remote_elevator[i].rank, remote_elevator[i].ip);
+        }
+        printf("\n");
         pthread_mutex_unlock(&elevator_lock);
     }
 
@@ -184,6 +185,10 @@ void *elevator_connection_handler(void *socket_desc)
                 for (int flr = 0; flr < N_FLOORS; flr++) { // limits N_FLOORS to 127 because of message size 255
                     client_message[flr*2] = '0' + common_get_request(flr, 0);
                     client_message[flr*2 + 1] = '0' + common_get_request(flr, 1);
+
+                    //debug
+                    //printf("%i\t%i\n", common_get_request(flr, 0), common_get_request(flr, 1));
+
                 }
                 break;
                 case 'n':

@@ -34,13 +34,23 @@ void master_main(const char* master_ip) {
     //int state_iterator = 1;
     //debug_print_state(&state_iterator, &elevator, 1);
 
-    while (!elev_get_stop_signal()) {
+    while (!elev_get_stop_signal() && !elev_get_obstruction_signal()) {
+
+        //DEBUG!!
+        //for (int flr = 0; flr < N_FLOORS; flr++) { // limits N_FLOORS to 127 because of message size 255
+        //    printf("%i\t%i\n", common_get_request(flr, 0), common_get_request(flr, 1));
+        //}
 
         //backup
         // if (timer_timeout(&message_timer)) {
         //     sendMessage(message);
         //     timer_set(&message_timer, 100);
         // }
+
+        if (new_master()) {
+            tcp_client_init(common_get_next_master_ip());
+            elevator.rank = tcp_get_station_rank();
+        }
 
         if (elevator.state != prev_state) {
 
@@ -158,15 +168,26 @@ int main(int argc, char* argv[]){
                 pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
                 master_main(argv[2]);
                 pthread_join(tcp_server_test_t, NULL);
-                puts("halla");
                 return 0;
 
             //debug
             case 'w': //local slave (without server)
                 master_main("localhost");
                 return 0;
-                default:
-                break;
+                
+
+            //debug
+            case 'v': //
+                master_main("129.241.187.20");
+                return 0;
+
+            case 'k': //kill
+                elev_init(ET_Comedi);
+                elev_set_motor_direction(DIRN_STOP);
+                return 0;
+
+            default:
+            break;
         }
     }
     _print_help();

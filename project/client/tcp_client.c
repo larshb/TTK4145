@@ -18,6 +18,17 @@ static int sockfd; //, n;
 static char recvline[255];
 static struct sockaddr_in servaddr;
 
+//dårlig løsning?
+static int new_master_flag = 0;
+
+int new_master() {
+    if (new_master_flag) {
+        new_master_flag = 0;
+        return 1;
+    }
+    return 0;
+}
+
 pthread_mutex_t lock;
 
 void tcp_client_init(const char* master_ip) {
@@ -99,10 +110,13 @@ void tcp_get_common_requests(int new_common_request[N_FLOORS][2]) {
     bzero(instruction, 255);
     sprintf(instruction, "pa");
     const char* new_common_request_str = tcp_client_send(instruction);
-    for (int flr = 0; flr < N_FLOORS; flr++) {
-        new_common_request[flr][0] = new_common_request_str[flr * 2] - '0';
-        new_common_request[flr][1] = new_common_request_str[flr*2 + 1] - '0';
+    if (new_common_request_str[0] > 0) {//not blank response
+        for (int flr = 0; flr < N_FLOORS; flr++) {
+            new_common_request[flr][0] = new_common_request_str[flr * 2] - '0';
+            new_common_request[flr][1] = new_common_request_str[flr*2 + 1] - '0';
+        }
     }
+    
 }
 
 const char* tcp_client_send(char instruction[255]) {
@@ -116,6 +130,7 @@ const char* tcp_client_send(char instruction[255]) {
 
     //debug
     if (!success) {
+        new_master_flag = 1;
         tcp_client_init(common_get_next_master_ip());
     }
 
