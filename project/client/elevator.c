@@ -3,9 +3,19 @@
 #include "common.h"         // should_stop, should_advance
 #include "tcp_client.h"     // Polling rank
 
+#include "filebackup.h"     //readLog
+
+
 void* elevator_monitor(void* elevator) {
     Elevator *e = elevator;
     elevator_initialize(e);
+    readLog(elevator);
+    
+    //DEBUG
+    struct timeval log_timer;
+    timer_set(&log_timer, 10);
+
+
     int floor_result;
     while (e->state != STOPPED && !elev_get_obstruction_signal()) {
         floor_result = elev_get_floor_sensor_signal();
@@ -22,6 +32,11 @@ void* elevator_monitor(void* elevator) {
         if (elev_get_stop_signal()){
             elev_set_motor_direction(DIRN_STOP);
             e->state = STOPPED;
+        }
+        //Debug write to log
+        if (timer_timeout(&log_timer)) {
+            writeTolog(elevator);
+            timer_set(&log_timer, 10);
         }
     }
     return 0;
