@@ -16,7 +16,7 @@
 
 static Elevator elevator;
 
-void master_main(const char* next_master_ip) {
+void master_main(char next_master_ip[]) {
     common_init();
     tcp_client_init(next_master_ip);
     pthread_t common_monitor_t;
@@ -50,7 +50,7 @@ void master_main(const char* next_master_ip) {
             new_next_master_ip = tcp_get_next_master_ip();
             printf("new_next_master_ip: %s\n", new_next_master_ip);
             if (strcmp(new_next_master_ip, "") != 0) {
-                next_master_ip = new_next_master_ip;
+                strncpy(next_master_ip, new_next_master_ip, 255);
                 printf("next_master_ip: %s\n", next_master_ip);
             }
             timer_set(&message_timer, 500);
@@ -159,6 +159,8 @@ void _print_help() {
 }
 
 int main(int argc, char* argv[]){
+    char localhost_str[255];
+    strcpy(localhost_str, "127.0.0.1");
     pthread_t tcp_server_test_t;
     if (argc < 2) {
         _print_help();
@@ -169,7 +171,7 @@ int main(int argc, char* argv[]){
             case 'm':
                 tcp_server_init();
                 pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
-                master_main("127.0.0.1");
+                master_main(localhost_str);
                 pthread_join(tcp_server_test_t, NULL);
                 return 0;
             case 's':
@@ -185,7 +187,7 @@ int main(int argc, char* argv[]){
 
             //debug
             case 'w': //local slave (without server)
-                master_main("127.0.0.1");
+                master_main(localhost_str);
                 return 0;
                 
 
