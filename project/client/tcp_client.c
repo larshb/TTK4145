@@ -1,20 +1,18 @@
-#include "tcp_client.h" 
-#include "common.h"
+#include "tcp_client.h"
 
 #include <arpa/inet.h>      // inet_pton
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
+//#include <sys/types.h>
+//#include <sys/socket.h>
+//#include <netdb.h>
 #include <pthread.h>        // pthread
-#include <stdio.h>
-#include <stdlib.h>         // atoi
-#include <string.h>
-#include <unistd.h>         // write
+#include <stdlib.h>         // atoi, exit
+#include <string.h>         // bzero
+#include <unistd.h>         // write, close
+#include <stdio.h>          // sprintf, perror
 
-#include <assert.h>
+#define DEFAULT_PORT 20022
 
-static int sockfd; //, n;
-//static char sendline[255];
+static int sockfd;          // Socket file descriptor
 static char recvline[255];
 static struct sockaddr_in servaddr;
 
@@ -36,8 +34,9 @@ void tcp_client_init(const char* master_ip) {
     bzero(&servaddr, sizeof servaddr);
  
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(20022);
- 
+    servaddr.sin_port = htons(DEFAULT_PORT);
+    
+    // Use master_ip string to set servaddr socket_in
     inet_pton(AF_INET, master_ip, &(servaddr.sin_addr));
  
     int success = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
@@ -143,23 +142,3 @@ const char* tcp_client_send(char instruction[255]) {
 void tcp_client_kill() {
     close(sockfd);
 }
-/*
-void tcp_test() {
-    tcp_client_init();
-    while(!elev_get_stop_signal())
-    {
-        bzero(sendline, 255);
-        bzero(recvline, 255);
-        //fgets(sendline, 255, stdin); //stdin = 0 , for standard input 
-
-        if (elev_get_button_signal(BUTTON_COMMAND, 2)) 
-        {
-            strcpy(sendline, "bc2");
-            write(sockfd, sendline, strlen(sendline)+1);
-            read(sockfd, recvline, 255);
-            printf("%s\n", recvline);
-        }
-    }
-    close(sockfd);
-}
-*/

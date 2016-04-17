@@ -1,8 +1,6 @@
 #include "manager.h"
 
-#include "elev.h"
-#include "assert.h"
-#include "pthread.h"	// mutex
+#include "pthread.h"	// manager_lock
 
 #include <stdlib.h>		// abs
 

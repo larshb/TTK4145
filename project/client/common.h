@@ -1,6 +1,5 @@
 #pragma once
 
-#include "elev.h"
 #include "elevator.h"
 
 void common_init();

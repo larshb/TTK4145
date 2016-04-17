@@ -1,11 +1,14 @@
 #include "common.h"
+
 #include "tcp_client.h"
 #include "pthread.h"    // pthread_mutex_t
-#include "stdio.h"      // puts (debug)
-#include "timer.h"      // for common request tcp polling
+#include "timer.h"      // common_request TCP polling
 
 //debug
-#include "debug.h"
+//#include "debug.h"
+//#include "stdio.h"      // puts (debug)
+
+#define POLLING_CYCLE 500
 
 static int common_request[N_FLOORS][2]={{0}}; // 0 = not requested, 1 = requested, 2 assigned to this elevator
 static const char* next_master_ip;
@@ -59,11 +62,11 @@ int common_order_available(Elevator* e) {
 void* common_monitor() {
     int new_common_request[N_FLOORS][2];
     struct timeval polling_timer;
-    timer_set(&polling_timer, 100); // maybe change?
+    timer_set(&polling_timer, POLLING_CYCLE); // maybe change?
     while (!elev_get_obstruction_signal()) {
         common_set_lamps();
         if (timer_timeout(&polling_timer)) {
-            timer_set(&polling_timer, 1000);
+            timer_set(&polling_timer, POLLING_CYCLE);
             //tcp_get_common_requests(new_common_request);
             tcp_get_common_requests(new_common_request);
             next_master_ip = tcp_get_next_master_ip();

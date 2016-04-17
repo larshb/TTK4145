@@ -23,14 +23,18 @@ static int remote_elevator_count = 0;
 //debug
 void d_print_remote_elevators() {
     pthread_mutex_lock(&elevator_lock);
-    printf("Remote elevator count: %i\n", remote_elevator_count);
+    printf("\n> remote_elevator_ count = %i\n", remote_elevator_count);
     for (int i = 0; i < MAX_ELEVATORS; i++) {
-        printf("manager_get_remote_elevator(%2d) = ", i);
+        printf("| remote_elevator[%2d]:\t", i);
         if (manager_get_remote_elevator(i)->active) {
-            printf("\t%3i\t%s", manager_get_remote_elevator(i)->rank, manager_get_remote_elevator(i)->ip);
+            printf("rank:%3i\tip: %s", manager_get_remote_elevator(i)->rank, manager_get_remote_elevator(i)->ip);
+        }
+        else {
+            printf("(inactive)");
         }
         printf("\n");
     }
+    printf("\n");
     pthread_mutex_unlock(&elevator_lock);
 }
 
@@ -127,7 +131,7 @@ void *elevator_connection_handler(void *socket_desc) {
     int direction;
     int floor;
     int ownership;
-    while ((read_size = recv(sock , client_message , 255 , 0)) > 0) {
+    while ((read_size = recv(sock , client_message , 255 , 0)) > 0 && !elev_get_obstruction_signal()) {
         //Send the message back to client
         //write(sock , client_message , strlen(client_message));
         /*switch (client_message[0]) {
@@ -278,7 +282,7 @@ void delete_remote_elevator(int elevator_id){
     manager_get_remote_elevator(elevator_id)->active = 0;
     int i = elevator_id + 1;
     if (manager_get_remote_elevator(i)->active)
-        while(manager_get_remote_elevator(i + 1)->active && i < MAX_ELEVATORS)
+        while(manager_get_remote_elevator(i + 1)->active && i < MAX_ELEVATORS - 1)
             i++;
     *manager_get_remote_elevator(elevator_id) = *manager_get_remote_elevator(i);
     manager_get_remote_elevator(i)->active = 0;

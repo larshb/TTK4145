@@ -1,6 +1,7 @@
 #include "elevator.h"
-#include "common.h" 
-#include "tcp_client.h"
+
+#include "common.h"         // should_stop, should_advance
+#include "tcp_client.h"     // Polling rank
 
 void* elevator_monitor(void* elevator) {
     Elevator *e = elevator;
