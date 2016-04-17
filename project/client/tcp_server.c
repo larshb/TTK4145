@@ -25,9 +25,9 @@ void d_print_remote_elevators() {
     pthread_mutex_lock(&elevator_lock);
     printf("Remote elevator count: %i\n", remote_elevator_count);
     for (int i = 0; i < MAX_ELEVATORS; i++) {
-        printf("remote_elevator[%2d] = ", i);
-        if (remote_elevator[i].active) {
-            printf("\t%3i\t%s", remote_elevator[i].rank, remote_elevator[i].ip);
+        printf("manager_get_remote_elevator(%2d) = ", i);
+        if (manager_get_remote_elevator(i)->active) {
+            printf("\t%3i\t%s", manager_get_remote_elevator(i)->rank, manager_get_remote_elevator(i)->ip);
         }
         printf("\n");
     }
@@ -67,7 +67,7 @@ void tcp_server_init()
 
 void *tcp_server_test() {
     for (int i = 0; i < MAX_ELEVATORS; i++)
-        remote_elevator[i].active = 0;
+        manager_get_remote_elevator(i)->active = 0;
 	while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) && !elev_get_obstruction_signal()) {
         puts("Connection accepted");
          
@@ -115,7 +115,7 @@ void *elevator_connection_handler(void *socket_desc) {
     //add sock to rank here? ----------------------------------------------------
 
     //get ip string
-    //remote_elevator[elevator_id].ip = inet_ntoa(client.sin_addr);
+    //manager_get_remote_elevator(elevator_id)->ip = inet_ntoa(client.sin_addr);
 
     //DEBUG PRINT
     d_print_remote_elevators();
@@ -160,7 +160,7 @@ void *elevator_connection_handler(void *socket_desc) {
             if (client_message[1] == 'c')
         	    common_set_request(floor, direction, 0);
             else {
-                ownership = manager_assign(direction, floor);
+                ownership = manager_assign(floor, direction);
                 //char ownership_str[3];
                 common_set_request(floor, direction, ownership);
                 sprintf(client_message, "%03d", ownership);
@@ -189,7 +189,7 @@ void *elevator_connection_handler(void *socket_desc) {
                 case 'n':
                 bzero(client_message, 255);
                 int next_master_remote_elevator_id = remote_elevator_count > 1;
-                strncpy(client_message, remote_elevator[next_master_remote_elevator_id].ip, 16);
+                strncpy(client_message, manager_get_remote_elevator(next_master_remote_elevator_id)->ip, 16);
                 break;
             }
             break;
@@ -199,22 +199,22 @@ void *elevator_connection_handler(void *socket_desc) {
                 case 's': // status
                 switch (client_message[2]) {
                     case 'i':
-                    remote_elevator[elevator_id].state = 0;
+                    manager_get_remote_elevator(elevator_id)->state = 0;
                     break;
                     case 'm':
-                    remote_elevator[elevator_id].state = 1;
+                    manager_get_remote_elevator(elevator_id)->state = 1;
                     break;
                     case 'd':
-                    remote_elevator[elevator_id].state = 2;
+                    manager_get_remote_elevator(elevator_id)->state = 2;
                     break;
                     case 's':
-                    remote_elevator[elevator_id].state = 3;
+                    manager_get_remote_elevator(elevator_id)->state = 3;
                     break;
                 }
-                remote_elevator[elevator_id].direction = client_message[3] == 'd';
+                manager_get_remote_elevator(elevator_id)->direction = client_message[3] == 'd';
                 char floor_str[3];
                 strncpy(floor_str, client_message + 4, 3);
-                remote_elevator[elevator_id].floor = atoi(floor_str);
+                manager_get_remote_elevator(elevator_id)->floor = atoi(floor_str);
                 break;
             }
             break;
@@ -233,10 +233,19 @@ void *elevator_connection_handler(void *socket_desc) {
 
         //debug
         //printf("-----------Elevator count: %i\n", remote_elevator_count);
-        delete_remote_elevator(elevator_id);
-        d_print_remote_elevators();
-        free(socket_desc);
 
+        delete_remote_elevator(elevator_id);
+
+        // Reassign requests for all elevators
+        for (int flr = 0; flr < N_FLOORS; flr++) {
+            common_set_request(flr, 0, manager_assign(flr, 0));
+            common_set_request(flr, 1, manager_assign(flr, 1));
+        }
+
+        //debug
+        d_print_remote_elevators();
+
+        free(socket_desc);
         fflush(stdout);
     }
     else if(read_size == -1)
@@ -258,10 +267,10 @@ int add_remote_elevator(int socket, const char* ip) {
     pthread_mutex_lock(&elevator_lock);
     for (int i = 0; i < MAX_ELEVATORS; i++) {
 
-        if (!remote_elevator[i].active) {
-            remote_elevator[i].active = 1;
-            remote_elevator[i].rank = socket;
-            remote_elevator[i].ip = ip;
+        if (!manager_get_remote_elevator(i)->active) {
+            manager_get_remote_elevator(i)->active = 1;
+            manager_get_remote_elevator(i)->rank = socket;
+            manager_get_remote_elevator(i)->ip = ip;
             elevator_id = i;
             break;
         }
@@ -272,12 +281,12 @@ int add_remote_elevator(int socket, const char* ip) {
 
 void delete_remote_elevator(int elevator_id){
     pthread_mutex_lock(&elevator_lock);
-    remote_elevator[elevator_id].active = 0;
+    manager_get_remote_elevator(elevator_id)->active = 0;
     int i = elevator_id + 1;
-    if (remote_elevator[i].active)
-        while(remote_elevator[i + 1].active && i < MAX_ELEVATORS)
+    if (manager_get_remote_elevator(i)->active)
+        while(manager_get_remote_elevator(i + 1)->active && i < MAX_ELEVATORS)
             i++;
-    remote_elevator[elevator_id] = remote_elevator[i];
-    remote_elevator[i].active = 0;
+    *manager_get_remote_elevator(elevator_id) = *manager_get_remote_elevator(i);
+    manager_get_remote_elevator(i)->active = 0;
     pthread_mutex_unlock(&elevator_lock);
 }
