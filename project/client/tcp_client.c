@@ -131,7 +131,7 @@ const char* tcp_client_send(char instruction[255]) {
     //debug
     if (!success) {
         new_master_flag = 1;
-        tcp_client_init(common_get_next_master_ip());
+        //tcp_client_init(common_get_next_master_ip());
     }
 
     pthread_mutex_unlock(&lock);
