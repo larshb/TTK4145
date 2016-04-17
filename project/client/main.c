@@ -12,7 +12,7 @@
 #include <stdlib.h>     // system 
 
 // Debug
-#include "debug.h"
+//#include "debug.h"
 
 static Elevator elevator;
 
