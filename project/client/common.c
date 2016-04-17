@@ -69,7 +69,7 @@ void* common_monitor() {
             next_master_ip = tcp_get_next_master_ip();
 
             //debug
-            printf("------Next master IP: %s\n", next_master_ip);
+            //printf("------Next master IP: %s\n", next_master_ip);
 
             pthread_mutex_lock(&common_request_lock);
             for (int flr = N_FLOORS - 1; flr > -1; flr--) {

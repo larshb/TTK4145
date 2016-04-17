@@ -124,9 +124,11 @@ const char* tcp_client_send(char instruction[255]) {
     bzero(recvline, 255);
     write(sockfd, instruction, 255);
     int success = recv(sockfd, recvline, 255 , 0);
-    if (strcmp(instruction, recvline) != 0)
-        puts("non-echo");
-    puts("done");
+
+    //debug
+    //if (strcmp(instruction, recvline) != 0)
+    //    puts("non-echo");
+    //puts("done");
 
     //debug
     if (!success) {

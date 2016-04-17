@@ -236,12 +236,6 @@ void *elevator_connection_handler(void *socket_desc) {
 
         delete_remote_elevator(elevator_id);
 
-        // Reassign requests for all elevators
-        for (int flr = 0; flr < N_FLOORS; flr++) {
-            common_set_request(flr, 0, manager_assign(flr, 0));
-            common_set_request(flr, 1, manager_assign(flr, 1));
-        }
-
         //debug
         d_print_remote_elevators();
 
@@ -289,4 +283,14 @@ void delete_remote_elevator(int elevator_id){
     *manager_get_remote_elevator(elevator_id) = *manager_get_remote_elevator(i);
     manager_get_remote_elevator(i)->active = 0;
     pthread_mutex_unlock(&elevator_lock);
+
+    // Reassign all elevator requests
+    for (int flr = 0; flr < N_FLOORS; flr++) {
+        for (int dir = 0; dir < 2; dir++) {
+            if (common_get_request(flr, dir) > 0) {
+                printf("common_get_request(%d, %d) = %d;\n", flr, dir, common_get_request(flr, dir));
+                common_set_request(flr, dir, manager_assign(flr, dir));
+            }
+        }
+    }
 }

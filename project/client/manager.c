@@ -4,7 +4,10 @@
 #include "assert.h"
 #include "pthread.h"	// mutex
 
-#include <stdlib.h>				//abs
+#include <stdlib.h>		// abs
+
+//debug
+//#include "stdio.h"		// printf
 
 static Elevator remote_elevator[MAX_ELEVATORS];
 
@@ -15,6 +18,7 @@ Elevator* manager_get_remote_elevator(int id) {
 }
 
 int manager_assign(int floor, int button_dir) {
+	//printf("---------------------manager_assign(%i, %i);\n", floor, button_dir);
 	pthread_mutex_lock(&manager_lock);
 	int chosen_elev_rank = remote_elevator[0].rank;
 	Elevator* curr_e;
