@@ -2,6 +2,8 @@
 
 #include "elev.h" // N_FLOORS
 
+#define DEFAULT_PORT 20022
+
 int new_master();
 
 void tcp_client_init(const char* master_ip);

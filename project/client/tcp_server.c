@@ -4,6 +4,8 @@
 #include "manager.h"
 #include "elev.h"       // obstruction kill
 
+#include "tcp_client.h" // DEFAULT_PORT
+
 #include <stdio.h>
 #include <string.h>     // strlen
 #include <stdlib.h>     // strlen
@@ -51,7 +53,7 @@ void tcp_server_init()
     //Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons( 20022 );
+    server.sin_port = htons( DEFAULT_PORT );
      
     //Bind
     if( bind(socket_desc,(struct sockaddr *)&server , sizeof(server)) < 0)

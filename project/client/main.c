@@ -16,9 +16,9 @@
 
 static Elevator elevator;
 
-void master_main(const char* master_ip) {
+void master_main(const char* next_master_ip) {
     common_init();
-    tcp_client_init(master_ip);
+    tcp_client_init(next_master_ip);
     pthread_t common_monitor_t;
     pthread_t elevator_monitor_t;
     pthread_create(&common_monitor_t,NULL,common_monitor,"Processing...");
@@ -34,6 +34,9 @@ void master_main(const char* master_ip) {
     //int state_iterator = 1;
     //debug_print_state(&state_iterator, &elevator, 1);
 
+    struct timeval message_timer;
+    timer_set(&message_timer, 500);
+
     while (!elev_get_stop_signal() && !elev_get_obstruction_signal()) {
 
         //DEBUG!!
@@ -42,13 +45,22 @@ void master_main(const char* master_ip) {
         //}
 
         //backup
-        // if (timer_timeout(&message_timer)) {
-        //     sendMessage(message);
-        //     timer_set(&message_timer, 100);
-        // }
+        if (timer_timeout(&message_timer)) {
+            const char* new_next_master_ip;
+            new_next_master_ip = tcp_get_next_master_ip();
+            printf("new_next_master_ip: %s\n", new_next_master_ip);
+            if (strcmp(new_next_master_ip, "") != 0) {
+                next_master_ip = new_next_master_ip;
+                printf("next_master_ip: %s\n", next_master_ip);
+            }
+            timer_set(&message_timer, 500);
+        }
 
+        //printf("common_get_next_master_ip() = \"%s\"\n", common_get_next_master_ip());
         if (new_master()) {
-            tcp_client_init(common_get_next_master_ip());
+            printf("Her skjær d sæ--");
+            tcp_client_init(next_master_ip);
+            //while(1);
             elevator.rank = tcp_get_station_rank();
         }
 
@@ -157,7 +169,7 @@ int main(int argc, char* argv[]){
             case 'm':
                 tcp_server_init();
                 pthread_create(&tcp_server_test_t,NULL,tcp_server_test,"Processing...");
-                master_main("localhost");
+                master_main("127.0.0.1");
                 pthread_join(tcp_server_test_t, NULL);
                 return 0;
             case 's':
@@ -173,7 +185,7 @@ int main(int argc, char* argv[]){
 
             //debug
             case 'w': //local slave (without server)
-                master_main("localhost");
+                master_main("127.0.0.1");
                 return 0;
                 
 

@@ -10,8 +10,6 @@
 #include <unistd.h>         // write, close
 #include <stdio.h>          // sprintf, perror
 
-#define DEFAULT_PORT 20022
-
 static int sockfd;          // Socket file descriptor
 static char recvline[255];
 static struct sockaddr_in servaddr;
@@ -30,6 +28,8 @@ int new_master() {
 pthread_mutex_t lock;
 
 void tcp_client_init(const char* master_ip) {
+    printf("Client connecting to: \"%s\"\n", master_ip);
+
     sockfd=socket(AF_INET, SOCK_STREAM, 0);
     bzero(&servaddr, sizeof servaddr);
  
@@ -38,7 +38,11 @@ void tcp_client_init(const char* master_ip) {
     
     // Use master_ip string to set servaddr socket_in
     inet_pton(AF_INET, master_ip, &(servaddr.sin_addr));
- 
+    
+    char debugstr[255];
+    inet_ntop(AF_INET, &(servaddr.sin_addr), debugstr, 255);
+    //printf("master_ip = %s\n", master_ip);
+    //printf("Socket IP = %s\n", debugstr);
     int success = connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr));
     if (success < 0) {
         perror("client connect");
@@ -50,7 +54,7 @@ int tcp_common_call(char direction, char action, int floor) {
     char instruction[255];
     bzero(instruction, 255);
     instruction[0] = 'b';
-    instruction[1] = action;
+    instruction[1] = action; 
     instruction[2] = direction;
     instruction[3] = floor + '0';
     const char* rank_str = tcp_client_send(instruction);
@@ -134,7 +138,8 @@ const char* tcp_client_send(char instruction[255]) {
         new_master_flag = 1;
         //tcp_client_init(common_get_next_master_ip());
     }
-
+    //char hei[255];
+    //strcpy(hei, recvline);
     pthread_mutex_unlock(&lock);
     return recvline;
 }
