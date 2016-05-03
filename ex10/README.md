@@ -42,4 +42,4 @@ FSP Model:
 
 There will be two states in the transition diagram.
 
-When the channels are buffered, we need to use a bounded buffer strategy to ensure no deadlocks.
+When the channels are buffered, we need to use a bounded buffer strategy to avoid deadlocks.
