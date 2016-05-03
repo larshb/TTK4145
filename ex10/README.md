@@ -35,8 +35,6 @@ The system goes into a deadlock when every philosopher (P) picks up one fork eac
 
 ### Communication
 
-FSP Model:
-
 	T1 = (e1 -> e2 -> T1).
 	T2 = (e1 -> e2 -> T2).
 
